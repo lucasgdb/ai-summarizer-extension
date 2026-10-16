@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "AI Summarizer"
+  },
+  "extDescription": {
+    "message": "Pick the part of a page that matters and get a summary."
+  },
+  "actionTitle": {
+    "message": "Open AI Summarizer"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "AI Summarizer"
+  },
+  "extDescription": {
+    "message": "Selecione a parte da página que importa e receba um resumo."
+  },
+  "actionTitle": {
+    "message": "Abrir o AI Summarizer"
+  }
+}
