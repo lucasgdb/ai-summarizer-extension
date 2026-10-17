@@ -1,13 +1,17 @@
 import { lazy } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export { CreditsFallback } from "@/components/credits/skeletons";
+export {
+  BuyCreditsFallback,
+  CreditsFallback,
+} from "@/components/credits/skeletons";
 export { HistoryFallback } from "@/components/history/skeletons";
 
 // Shown after an action, not when the panel opens: split off the first bundle
 // (and fetched once the browser is idle, so usually already there)
 const loadHistory = () => import("@/components/history/history");
 const loadCredits = () => import("@/components/credits/credits-page");
+const loadBuy = () => import("@/components/credits/buy-credits");
 const loadForm = () => import("@/components/summarize-form");
 
 export const History = lazy(() =>
@@ -15,6 +19,9 @@ export const History = lazy(() =>
 );
 export const CreditsPage = lazy(() =>
   loadCredits().then((module) => ({ default: module.CreditsPage })),
+);
+export const BuyCredits = lazy(() =>
+  loadBuy().then((module) => ({ default: module.BuyCredits })),
 );
 export const SummarizeForm = lazy(() =>
   loadForm().then((module) => ({ default: module.SummarizeForm })),
@@ -25,6 +32,7 @@ export function preloadSections() {
     loadForm();
     loadHistory();
     loadCredits();
+    loadBuy();
   };
   if ("requestIdleCallback" in window) requestIdleCallback(load);
   else setTimeout(load, 1);

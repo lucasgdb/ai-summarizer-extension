@@ -57,7 +57,9 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
+  // Below the trigger (above when there's no room), never over it: the
+  // item-aligned default covers the trigger and what's around it
+  position = "popper",
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {

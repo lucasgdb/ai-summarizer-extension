@@ -1,8 +1,10 @@
 import type { PickedContent } from "@/lib/messages";
+import { toMarkdown } from "./to-markdown";
 
 // ~15k tokens: plenty for a summary, and keeps one bad pick from costing a fortune
 export const maxChars = 60_000;
 
+/** Plain text (a PDF's): spaces collapsed, at most one blank line in a row */
 export function normalize(raw: string) {
   const lines: string[] = [];
   for (const line of raw.split("\n")) {
@@ -28,7 +30,7 @@ export function extract(
   element: HTMLElement,
   source: PickedContent["source"],
 ): PickedContent {
-  const text = normalize(element.innerText);
+  const text = toMarkdown(element);
   return {
     text: text.slice(0, maxChars),
     truncated: text.length > maxChars,

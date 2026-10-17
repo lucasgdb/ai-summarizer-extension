@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Session } from "@/lib/auth";
+import { useBuyCredits } from "@/lib/buy-credits";
 import {
   formatCredits,
   getDictionary,
@@ -342,43 +343,51 @@ function TranslateButton({
     ((quote.data !== undefined && !quote.data.sufficient) ||
       (price !== undefined && balance !== undefined && balance < price));
   const name = languageLabel(locale, language);
+  const buyCredits = useBuyCredits();
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={quote.isPending || insufficient}
-      title={
-        insufficient && price !== undefined && balance !== undefined
-          ? dict.credits.insufficient(
-              formatCredits(locale, price),
-              formatCredits(locale, balance),
-            )
-          : undefined
-      }
-      onClick={() => {
-        if (cached) onOpen();
-        else if (price !== undefined) onTranslate(price);
-      }}
-    >
-      {/* The picker names the language; already translated: free to open.
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={quote.isPending || insufficient}
+        title={
+          insufficient && price !== undefined && balance !== undefined
+            ? dict.credits.insufficient(
+                formatCredits(locale, price),
+                formatCredits(locale, balance),
+              )
+            : undefined
+        }
+        onClick={() => {
+          if (cached) onOpen();
+          else if (price !== undefined) onTranslate(price);
+        }}
+      >
+        {/* The picker names the language; already translated: free to open.
           No spinner: it would push the label around while the price loads */}
-      {cached ? dict.translate.open(name) : dict.translate.translate}
-      {!cached && (
-        <span className="font-normal text-muted-foreground">
-          ·{" "}
-          {price === undefined ? (
-            // Only the number comes from the API: "· ▭ credits"
-            <>
-              <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
-              {dict.credits.unit}
-            </>
-          ) : (
-            formatCredits(locale, price)
-          )}
-        </span>
+        {cached ? dict.translate.open(name) : dict.translate.translate}
+        {!cached && (
+          <span className="font-normal text-muted-foreground">
+            ·{" "}
+            {price === undefined ? (
+              // Only the number comes from the API: "· ▭ credits"
+              <>
+                <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
+                {dict.credits.unit}
+              </>
+            ) : (
+              formatCredits(locale, price)
+            )}
+          </span>
+        )}
+      </Button>
+      {insufficient && buyCredits && (
+        <Button variant="ghost" size="sm" onClick={buyCredits}>
+          {dict.buy.open}
+        </Button>
       )}
-    </Button>
+    </>
   );
 }
 
@@ -393,6 +402,7 @@ function TranslationFailure({
   const locale = useLocale();
   const dict = getDictionary(locale);
   const { reason, price, balance } = failure;
+  const buyCredits = useBuyCredits();
 
   const message =
     reason === "insufficient" && price !== undefined && balance !== undefined
@@ -414,7 +424,19 @@ function TranslationFailure({
 
   return (
     <div role="alert" className="flex items-start gap-2">
-      <p className="flex-1 text-sm text-muted-foreground">{message}</p>
+      <div className="flex-1">
+        <p className="text-sm text-muted-foreground">{message}</p>
+        {reason === "insufficient" && buyCredits && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={buyCredits}
+          >
+            {dict.buy.open}
+          </Button>
+        )}
+      </div>
       <Button
         variant="ghost"
         size="icon-xs"

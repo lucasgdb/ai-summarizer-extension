@@ -4,6 +4,7 @@ import {
   LanguagesIcon,
   LogOutIcon,
   MoonIcon,
+  PlusIcon,
   SunIcon,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,9 +34,11 @@ import { TextSkeleton } from "./text-skeleton";
 export function AccountMenu({
   session,
   onOpenCredits,
+  onBuyCredits,
 }: {
   session: Session;
   onOpenCredits: () => void;
+  onBuyCredits: () => void;
 }) {
   const locale = useLocale();
   const dict = getDictionary(locale);
@@ -111,6 +114,10 @@ export function AccountMenu({
               formatNumber(locale, balance.data)
             )}
           </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onBuyCredits}>
+          <PlusIcon />
+          {dict.buy.open}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* The header's language and theme buttons, while signed in */}

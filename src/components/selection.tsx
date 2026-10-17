@@ -22,12 +22,26 @@ const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 const excerptLength = 280;
 
 /**
+ * The text goes to the API as light Markdown (lib/bridge/to-markdown); the
+ * preview is for reading, so the marks go: fences, "#", "- ", "> ", table
+ * pipes and inline backticks
+ */
+function plain(markdown: string) {
+  return markdown
+    .replace(/^`{3,}.*$/gm, "")
+    .replace(/^\s*(?:#{1,6}|[-*]|\d+\.|>)\s+/gm, "")
+    .replace(/^\|\s?|\s?\|$/gm, "")
+    .replace(/\s\|\s/g, " · ")
+    .replace(/`([^`\n]+)`/g, "$1");
+}
+
+/**
  * Page text is full of short lines (menus, headings, captions); shown as-is
  * they eat the visible lines and the cut lands anywhere. Flow them into one
  * paragraph and stop at a word boundary instead.
  */
 function excerpt(text: string) {
-  const flat = text.replace(/\s+/g, " ").trim();
+  const flat = plain(text).replace(/\s+/g, " ").trim();
   if (flat.length <= excerptLength) return flat;
   const cut = flat.slice(0, excerptLength);
   // Back up to the last word, unless that throws away too much (long URLs)

@@ -6,7 +6,6 @@ import { formatDate, formatNumber, getDictionary } from "@/lib/i18n";
 import { useBalance, useTransactions } from "@/lib/queries";
 import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
-import { Plans } from "./plans";
 import { BalanceSection, TransactionRowsSkeleton } from "./skeletons";
 
 function TransactionRow({ transaction }: { transaction: CreditTransaction }) {
@@ -56,21 +55,21 @@ function TransactionRow({ transaction }: { transaction: CreditTransaction }) {
   );
 }
 
-/** Lines up with TransactionRow: kind, summary title, date | amount, balance */
-/** Balance and the statement (every bonus, charge and refund) */
-const showPlans = import.meta.env.MODE !== "store";
-
-export function CreditsPage({ session }: { session: Session }) {
+/** Balance and the statement (every bonus, purchase, charge and refund) */
+export function CreditsPage({
+  session,
+  onBuy,
+}: {
+  session: Session;
+  onBuy: () => void;
+}) {
   const locale = useLocale();
   const dict = getDictionary(locale);
   const balance = useBalance(session);
   const transactions = useTransactions(session);
   return (
     <div className="flex flex-1 flex-col">
-      <BalanceSection balance={balance.data} />
-
-      {/* Mock data until the API serves the plans: not in the store build */}
-      {showPlans && <Plans />}
+      <BalanceSection balance={balance.data} onBuy={onBuy} />
 
       <h2 className="mb-1 font-medium tracking-tight">
         {dict.credits.statement}

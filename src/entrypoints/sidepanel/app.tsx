@@ -16,6 +16,8 @@ import { BackButton } from "@/components/back-button";
 import { emptyFilter, type FilterState } from "@/components/history/filters";
 import { LanguageSwitch } from "@/components/language-switch";
 import {
+  BuyCredits,
+  BuyCreditsFallback,
   CreditsFallback,
   CreditsPage,
   FormFallback,
@@ -39,6 +41,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { apiUrl } from "@/lib/api";
 import { refreshUser, type Session } from "@/lib/auth";
 import { keyCommands } from "@/lib/bridge/picker";
+import { BuyCreditsContext } from "@/lib/buy-credits";
 import {
   formatNumber,
   getDictionary,
@@ -82,7 +85,8 @@ import { cn } from "@/lib/utils";
 
 type Source = "element" | "page" | "pdf";
 
-type Section = "summarize" | "history" | "credits";
+// "buy" isn't in the nav: it opens from the credits (and wherever they run short)
+type Section = "summarize" | "history" | "credits" | "buy";
 const navSections = [
   "summarize",
   "history",
@@ -135,6 +139,8 @@ export function App() {
   const session = useSession();
   const userId = session?.user.id;
   const [section, setSection] = useState<Section>("summarize");
+  // Where "Buy credits" was opened from, to go back there
+  const [buyFrom, setBuyFrom] = useState<Section>("credits");
   const [openSummary, setOpenSummary] = useState<HistoryItem | null>(null);
   const [historyFilter, setHistoryFilter] = useState<FilterState>(emptyFilter);
 
@@ -158,6 +164,18 @@ export function App() {
   function navigate(next: Section) {
     setSection(next);
     setOpenSummary(null);
+    window.scrollTo(0, 0);
+  }
+
+  // Keeps the open summary: back from buying returns to it
+  function openBuy() {
+    if (section !== "buy") setBuyFrom(section);
+    setSection("buy");
+    window.scrollTo(0, 0);
+  }
+
+  function closeBuy() {
+    setSection(buyFrom);
     window.scrollTo(0, 0);
   }
 
@@ -186,6 +204,7 @@ export function App() {
               <AccountMenu
                 session={session}
                 onOpenCredits={() => navigate("credits")}
+                onBuyCredits={openBuy}
               />
             </div>
           ) : (
@@ -199,7 +218,7 @@ export function App() {
 
       <main className="flex flex-1 flex-col px-4 pt-6 pb-10">
         {session ? (
-          <>
+          <BuyCreditsContext value={openBuy}>
             {/* Hidden, not unmounted: a pick or summary in progress survives
                 a look at the history */}
             <div
@@ -212,7 +231,16 @@ export function App() {
             </div>
             {section === "credits" && (
               <Suspense fallback={<CreditsFallback />}>
-                <CreditsPage session={session} />
+                <CreditsPage session={session} onBuy={openBuy} />
+              </Suspense>
+            )}
+            {section === "buy" && (
+              <Suspense fallback={<BuyCreditsFallback onBack={closeBuy} />}>
+                <BuyCredits
+                  key={session.user.id}
+                  session={session}
+                  onBack={closeBuy}
+                />
               </Suspense>
             )}
             {section === "history" && (
@@ -229,7 +257,7 @@ export function App() {
                 </Suspense>
               </div>
             )}
-          </>
+          </BuyCreditsContext>
         ) : (
           <SignIn />
         )}
@@ -261,6 +289,8 @@ function MainNav({
   onNavigate: (section: Section) => void;
 }) {
   const dict = useDictionary();
+  // Buying is part of the credits
+  const current = section === "buy" ? "credits" : section;
 
   return (
     <nav aria-label={dict.nav.label} className="-ml-2 flex">
@@ -268,11 +298,11 @@ function MainNav({
         <button
           key={item}
           type="button"
-          aria-current={section === item ? "page" : undefined}
+          aria-current={current === item ? "page" : undefined}
           onClick={() => onNavigate(item)}
           className={cn(
             "cursor-pointer rounded-md px-2 py-1 tracking-tight transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
-            section === item ? "text-foreground" : "text-muted-foreground",
+            current === item ? "text-foreground" : "text-muted-foreground",
           )}
         >
           {dict.nav[item]}

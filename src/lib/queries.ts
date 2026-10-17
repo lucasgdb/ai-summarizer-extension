@@ -7,11 +7,18 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { ApiUnreachableError } from "./api";
-import type { Session } from "./auth";
-import { getBalance, listTransactions } from "./credits";
+import { refreshUser, type Session } from "./auth";
+import {
+  createPurchase,
+  getBalance,
+  getPacks,
+  getPurchase,
+  listTransactions,
+  type Purchase,
+  simulatePurchase,
+} from "./credits";
 import type { Locale } from "./i18n";
 import type { PickedContent } from "./messages";
-import { listPlans } from "./plans";
 import { ApiError, type Page, UnauthorizedError } from "./requests";
 import {
   deleteOriginal,
@@ -70,6 +77,8 @@ const keys = {
   translationQuote: (userId: string, id: string, language: string) =>
     ["translation-quote", userId, id, language] as const,
   balance: (userId: string) => ["credits", userId, "balance"] as const,
+  purchase: (userId: string, id: string) =>
+    ["credits", userId, "purchase", id] as const,
   transactions: (userId: string) =>
     ["credits", userId, "transactions"] as const,
   quote: (
@@ -139,13 +148,90 @@ export function useBalance(session: Session) {
   });
 }
 
-/** Credit packs on sale; rarely change */
-export function usePlans() {
+/** Credit packs on sale (public); prices change in the API's database */
+export function usePacks() {
   return useQuery({
-    queryKey: ["plans"],
-    queryFn: ({ signal }) => listPlans(signal),
-    staleTime: 10 * 60_000,
+    queryKey: ["credit-packs"],
+    queryFn: ({ signal }) => getPacks(signal),
   });
+}
+
+/** Polled while pending, every few seconds, until a final status */
+const purchasePollMs = 3000;
+
+/**
+ * A PIX charge, polled while it's pending (and not past its expiry) and
+ * something shows it: leaving the screen stops it
+ */
+export function usePurchase(session: Session, id: string | null) {
+  return useQuery({
+    enabled: id !== null,
+    queryKey: keys.purchase(session.user.id, id ?? ""),
+    queryFn: async ({ signal }) => {
+      const purchase = await getPurchase(session.token, id ?? "", signal);
+      if (purchase.status === "paid") rememberPurchase(session, purchase);
+      return purchase;
+    },
+    refetchInterval: (query) => {
+      const purchase = query.state.data;
+      return purchase?.status === "pending" &&
+        Date.parse(purchase.expires_at) > Date.now()
+        ? purchasePollMs
+        : false;
+    },
+    // The response it was created with is fresh: the first poll comes later
+    staleTime: purchasePollMs,
+  });
+}
+
+/**
+ * POST /credits/purchases: a new PIX, or the same one while it's valid. The
+ * screen starts showing (and polling) it right away
+ */
+export function useCreatePurchase(session: Session) {
+  return useMutation({
+    mutationFn: (packId: string) => createPurchase(session.token, packId),
+    onSuccess: (purchase) => {
+      queryClient.setQueryData(
+        keys.purchase(session.user.id, purchase.id),
+        purchase,
+      );
+      if (purchase.status === "paid") rememberPurchase(session, purchase);
+    },
+    onError: (error) => {
+      // A pack that's gone: the list changed under the screen
+      if (error instanceof ApiError && error.status === 400) {
+        queryClient.invalidateQueries({ queryKey: ["credit-packs"] });
+      }
+    },
+  });
+}
+
+/** Sandbox only: the answer already comes paid */
+export function useSimulatePurchase(session: Session) {
+  return useMutation({
+    mutationFn: (id: string) => simulatePurchase(session.token, id),
+    onSuccess: (purchase) => {
+      queryClient.setQueryData(
+        keys.purchase(session.user.id, purchase.id),
+        purchase,
+      );
+      if (purchase.status === "paid") rememberPurchase(session, purchase);
+    },
+  });
+}
+
+/**
+ * Credits that just arrived: the new balance everywhere (prices that didn't
+ * fit may now), the statement, and /me (the session keeps a balance too)
+ */
+function rememberPurchase(session: Session, purchase: Purchase) {
+  const userId = session.user.id;
+  setBalance(session, purchase.credit_balance);
+  queryClient.invalidateQueries({ queryKey: keys.balance(userId) });
+  queryClient.invalidateQueries({ queryKey: keys.transactions(userId) });
+  queryClient.invalidateQueries({ queryKey: ["translation-quote", userId] });
+  refreshUser(session);
 }
 
 /** Models, styles, lengths and efforts; public and rarely changes */

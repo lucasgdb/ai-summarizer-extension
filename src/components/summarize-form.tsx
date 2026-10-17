@@ -27,6 +27,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import type { Session } from "@/lib/auth";
+import { useBuyCredits } from "@/lib/buy-credits";
 import { type GenerationForm, generationSchema } from "@/lib/generation-schema";
 import {
   formatCredits,
@@ -94,6 +95,7 @@ function PricedForm({
   const dict = getDictionary(locale);
   const id = useId();
   const [open, setOpen] = useState(false);
+  const buyCredits = useBuyCredits();
 
   const saved = resolveGeneration(usePreferences(), options, locale);
   const form = useForm({
@@ -390,7 +392,22 @@ function PricedForm({
       {/* Right above the button they explain, where the eye goes when it's
           disabled (at the top, past the options, they went unnoticed) */}
       {insufficient && (
-        <Notice icon={CoinsIcon} title={dict.credits.insufficientTitle}>
+        <Notice
+          icon={CoinsIcon}
+          title={dict.credits.insufficientTitle}
+          actions={
+            buyCredits && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={buyCredits}
+              >
+                {dict.buy.open}
+              </Button>
+            )
+          }
+        >
           {dict.credits.insufficient(
             formatCredits(locale, price),
             formatCredits(locale, balance),

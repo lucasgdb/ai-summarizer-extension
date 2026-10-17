@@ -1,6 +1,7 @@
 import { browser, defineUnlistedScript } from "#imports";
 import { extract, mainContent } from "@/lib/bridge/extract";
 import { startPicker } from "@/lib/bridge/picker";
+import { countWords, toMarkdown } from "@/lib/bridge/to-markdown";
 import {
   type BridgeRequest,
   type BridgeResponse,
@@ -40,8 +41,9 @@ async function probe(): Promise<ProbeResponse> {
   const pdf = document.contentType === "application/pdf";
   const meta = (selector: string) =>
     document.querySelector<HTMLMetaElement>(selector)?.content.trim() ?? "";
-  // Chrome's PDF viewer has no text in the DOM: the count comes after reading
-  const text = pdf ? "" : (mainContent().innerText ?? "");
+  // Chrome's PDF viewer has no text in the DOM: the count comes after reading.
+  // The same text "Use the whole page" sends, so the count matches the price
+  const text = pdf ? "" : toMarkdown(mainContent());
   return {
     pdf,
     url: location.href,
@@ -50,7 +52,7 @@ async function probe(): Promise<ProbeResponse> {
       meta('meta[name="description"]') ||
       meta('meta[property="og:description"]'),
     language: document.documentElement.lang,
-    words: text.split(/\s+/).filter(Boolean).length,
+    words: countWords(text),
     hasIcon: !pdf && (await hasIcon()),
   };
 }

@@ -1,4 +1,7 @@
+import { CoinsIcon } from "lucide-react";
+import { BackButton } from "@/components/back-button";
 import { TextSkeleton } from "@/components/text-skeleton";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber } from "@/lib/i18n";
 import { useDictionary, useLocale } from "@/lib/use-locale";
@@ -6,8 +9,17 @@ import { useDictionary, useLocale } from "@/lib/use-locale";
 // Small and shared: used by the credits page (lazy chunk) and by its fallback
 // in the first bundle, so both look the same and nothing jumps
 
-/** "Balance", the number (or its skeleton), "credits" and the price note */
-export function BalanceSection({ balance }: { balance: number | undefined }) {
+/**
+ * "Balance", the number (or its skeleton), "credits", the price note and "Buy
+ * credits" (disabled in the fallback, so it's there from the start)
+ */
+export function BalanceSection({
+  balance,
+  onBuy,
+}: {
+  balance: number | undefined;
+  onBuy?: () => void;
+}) {
   const locale = useLocale();
   const dict = useDictionary();
 
@@ -27,16 +39,22 @@ export function BalanceSection({ balance }: { balance: number | undefined }) {
         </span>
       </p>
       <p className="mt-3 text-sm text-muted-foreground">{dict.credits.about}</p>
+      <Button size="sm" className="mt-4" disabled={!onBuy} onClick={onBuy}>
+        <CoinsIcon data-icon="inline-start" />
+        {dict.buy.open}
+      </Button>
     </section>
   );
 }
 
 /**
- * Built from the plan card's own tags and text classes, with skeletons in place
- * of the words: every line takes the real line's height, so the two match
- * exactly (and keep matching if the card changes)
+ * Built from the pack card's own tags and text classes, with skeletons in
+ * place of what comes from the API: every line takes the real line's height,
+ * so the two match exactly. The button's label is fixed, so it's real
  */
-function PlanSkeleton({ name }: { name: string }) {
+function PackSkeleton({ credits }: { credits: string }) {
+  const dict = useDictionary();
+
   return (
     <li
       className="flex items-center gap-3 rounded-lg border p-3.5"
@@ -44,12 +62,12 @@ function PlanSkeleton({ name }: { name: string }) {
     >
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-2 font-medium tracking-tight">
-          <TextSkeleton className={name} />
+          <TextSkeleton className={credits} />
           {/* The line's text: a flex line only gets its height from text */}
           {"\u200b"}
         </p>
         <p className="mt-0.5 text-sm tabular-nums">
-          <TextSkeleton className="w-32" />
+          <TextSkeleton className="w-36" />
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
           <TextSkeleton className="w-36" />
@@ -59,32 +77,45 @@ function PlanSkeleton({ name }: { name: string }) {
         <p className="font-semibold tracking-tight tabular-nums">
           <TextSkeleton className="w-16" />
         </p>
-        <Skeleton className="h-7 w-20" />
+        <Button size="sm" variant="outline" disabled tabIndex={-1}>
+          {dict.buy.buy}
+        </Button>
       </div>
     </li>
   );
 }
 
-export function PlanCardsSkeleton() {
-  return ["w-16", "w-12", "w-14", "w-10"].map((width) => (
-    <PlanSkeleton key={width} name={width} />
+export function PackCardsSkeleton() {
+  return ["w-24", "w-28", "w-28", "w-32"].map((width, index) => (
+    // biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholders
+    <PackSkeleton key={index} credits={width} />
   ));
 }
 
-/** The plans section with its fixed parts, the cards still loading */
-export function PlansLoading() {
+/** "← Back", the title and the intro: fixed, shared with the fallback */
+export function BuyHeader({ onBack }: { onBack?: () => void }) {
   const dict = useDictionary();
 
   return (
-    <section className="mb-8">
-      <h2 className="mb-3 font-medium tracking-tight">{dict.plans.title}</h2>
-      <ul className="space-y-2" aria-busy="true">
-        <PlanCardsSkeleton />
+    <div className="mb-6">
+      <BackButton onClick={onBack ?? (() => {})}>{dict.back}</BackButton>
+      <h1 className="mt-4 text-2xl font-semibold tracking-tighter">
+        {dict.buy.title}
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">{dict.buy.intro}</p>
+    </div>
+  );
+}
+
+/** The purchase screen before its code has arrived */
+export function BuyCreditsFallback({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col" aria-busy="true">
+      <BuyHeader onBack={onBack} />
+      <ul className="space-y-2">
+        <PackCardsSkeleton />
       </ul>
-      <p className="mt-3 text-xs text-muted-foreground">
-        {dict.plans.paymentNote}
-      </p>
-    </section>
+    </div>
   );
 }
 
@@ -128,8 +159,6 @@ export function CreditsFallback() {
   return (
     <div className="flex flex-1 flex-col" aria-busy="true">
       <BalanceSection balance={undefined} />
-      {/* Matches the page: no plans in the store build (mock data) */}
-      {import.meta.env.MODE !== "store" && <PlansLoading />}
       <h2 className="mb-1 font-medium tracking-tight">
         {dict.credits.statement}
       </h2>
