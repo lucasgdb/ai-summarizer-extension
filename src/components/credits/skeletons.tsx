@@ -1,5 +1,6 @@
-import { CoinsIcon } from "lucide-react";
+import { CoinsIcon, TriangleAlertIcon } from "lucide-react";
 import { BackButton } from "@/components/back-button";
+import { Notice } from "@/components/notice";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,18 @@ export function BalanceSection({
           {dict.credits.title.toLowerCase()}
         </span>
       </p>
+      {/* A reversed purchase took back credits already spent */}
+      {balance !== undefined && balance < 0 && (
+        <div className="mt-4">
+          <Notice
+            icon={TriangleAlertIcon}
+            variant="destructive"
+            title={dict.credits.negativeTitle}
+          >
+            {dict.credits.negativeBody}
+          </Notice>
+        </div>
+      )}
       <p className="mt-3 text-sm text-muted-foreground">{dict.credits.about}</p>
       <Button size="sm" className="mt-4" disabled={!onBuy} onClick={onBuy}>
         <CoinsIcon data-icon="inline-start" />

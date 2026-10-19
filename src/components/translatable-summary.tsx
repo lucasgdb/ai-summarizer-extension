@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import type { Session } from "@/lib/auth";
 import { useBuyCredits } from "@/lib/buy-credits";
+import { insufficientMessage } from "@/lib/credits-messages";
 import {
   formatCredits,
   getDictionary,
@@ -294,8 +295,12 @@ function TranslateControl({
       </label>
       <Select value={target} onValueChange={setPicked}>
         <SelectTrigger id={`${id}-target`} size="sm" className="min-w-40">
-          <LanguagesIcon className="text-muted-foreground" />
-          <SelectValue />
+          {/* One group on the left: justify-between would float the language
+              alone in the middle of the trigger */}
+          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+            <LanguagesIcon className="text-muted-foreground" />
+            <SelectValue />
+          </span>
         </SelectTrigger>
         {/* Above the trigger, not over it, with every language in view
             (item-aligned would cover the trigger and scroll with arrows) */}
@@ -353,10 +358,7 @@ function TranslateButton({
         disabled={quote.isPending || insufficient}
         title={
           insufficient && price !== undefined && balance !== undefined
-            ? dict.credits.insufficient(
-                formatCredits(locale, price),
-                formatCredits(locale, balance),
-              )
+            ? insufficientMessage(dict, locale, price, balance)
             : undefined
         }
         onClick={() => {
@@ -406,26 +408,31 @@ function TranslationFailure({
 
   const message =
     reason === "insufficient" && price !== undefined && balance !== undefined
-      ? dict.credits.insufficient(
-          formatCredits(locale, price),
-          formatCredits(locale, balance),
-        )
+      ? insufficientMessage(dict, locale, price, balance)
       : reason === "price-changed" && price !== undefined
         ? dict.translate.priceChanged(formatCredits(locale, price))
-        : reason === "interrupted"
-          ? dict.translate.interrupted
-          : reason === "offline"
-            ? dict.summaryErrors.offline.title
-            : `${dict.translate.failed} ${
-                reason === "unavailable" || reason === "timeout"
-                  ? dict.credits.refunded
-                  : ""
-              }`;
+        : reason === "incomplete"
+          ? dict.translate.incomplete(languageName(locale, failure.language))
+          : reason === "interrupted"
+            ? dict.translate.interrupted
+            : reason === "offline"
+              ? dict.summaryErrors.offline.title
+              : `${dict.translate.failed} ${
+                  reason === "unavailable" || reason === "timeout"
+                    ? dict.credits.refunded
+                    : ""
+                }`;
 
   return (
     <div role="alert" className="flex items-start gap-2">
       <div className="flex-1">
         <p className="text-sm text-muted-foreground">{message}</p>
+        {/* Charged but not saved: the text that arrived is all there is */}
+        {failure.partial && (
+          <div className="mt-3 rounded-lg border p-3">
+            <SummaryView summary={failure.partial} />
+          </div>
+        )}
         {reason === "insufficient" && buyCredits && (
           <Button
             variant="outline"

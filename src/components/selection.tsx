@@ -13,6 +13,7 @@ import type { PickedContent } from "@/lib/messages";
 import type { PdfPages } from "@/lib/page";
 import { pdfFileName } from "@/lib/pdf";
 import { useLocale } from "@/lib/use-locale";
+import { cn } from "@/lib/utils";
 
 // Rough estimate (~4 chars per token): the real count only exists after the
 // model runs, and the price in credits is on the Summarize button
@@ -40,8 +41,32 @@ function plain(markdown: string) {
  * they eat the visible lines and the cut lands anywhere. Flow them into one
  * paragraph and stop at a word boundary instead.
  */
+/**
+ * The prose, when there is some: headings, lists, tables, quotes and code run
+ * together into one line read like a word salad ("…2026 Sumário: O Node.js é
+ * single-threaded? Tarefas…"). A pick that's all list (or all code) has no
+ * prose, so it keeps everything
+ */
+function prose(markdown: string) {
+  const paragraphs: string[] = [];
+  let inCode = false;
+  for (const line of markdown.split("\n")) {
+    if (/^\s*`{3,}/.test(line)) {
+      inCode = !inCode;
+      continue;
+    }
+    if (inCode || !line.trim()) continue;
+    if (/^\s*(?:#{1,6}\s|[-*]\s|\d+\.\s|>|\|)/.test(line)) continue;
+    // Bylines, dates, captions: too short to say what the text is about, or
+    // a run of "·"-separated facts ("By … · 10 Sep 2024 · Updated …")
+    if (line.trim().length < 60 || /\s·\s.*\s·\s/.test(line)) continue;
+    paragraphs.push(line);
+  }
+  return paragraphs.length > 0 ? paragraphs.join("\n") : markdown;
+}
+
 function excerpt(text: string) {
-  const flat = plain(text).replace(/\s+/g, " ").trim();
+  const flat = plain(prose(text)).replace(/\s+/g, " ").trim();
   if (flat.length <= excerptLength) return flat;
   const cut = flat.slice(0, excerptLength);
   // Back up to the last word, unless that throws away too much (long URLs)
@@ -81,7 +106,14 @@ export function Selection({
       <h2 className="font-medium tracking-tight">{dict.selection}</h2>
       <div className="flex flex-wrap gap-1.5">
         {host && <Badge variant="secondary">{host}</Badge>}
-        <Badge variant="outline" className="max-w-full font-mono">
+        {/* Monospace only for what's code: the picked element's selector */}
+        <Badge
+          variant="outline"
+          className={cn(
+            "max-w-full",
+            content.source === "element" && "font-mono",
+          )}
+        >
           <span className="truncate">{source}</span>
         </Badge>
         {pdf && (

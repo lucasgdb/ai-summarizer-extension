@@ -28,6 +28,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import type { Session } from "@/lib/auth";
 import { useBuyCredits } from "@/lib/buy-credits";
+import { insufficientMessage } from "@/lib/credits-messages";
 import { type GenerationForm, generationSchema } from "@/lib/generation-schema";
 import {
   formatCredits,
@@ -408,10 +409,7 @@ function PricedForm({
             )
           }
         >
-          {dict.credits.insufficient(
-            formatCredits(locale, price),
-            formatCredits(locale, balance),
-          )}
+          {insufficientMessage(dict, locale, price, balance)}
         </Notice>
       )}
       {priceChanged && price !== undefined && !insufficient && (

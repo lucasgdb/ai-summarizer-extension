@@ -169,7 +169,7 @@ export function usePurchase(session: Session, id: string | null) {
     queryKey: keys.purchase(session.user.id, id ?? ""),
     queryFn: async ({ signal }) => {
       const purchase = await getPurchase(session.token, id ?? "", signal);
-      if (purchase.status === "paid") rememberPurchase(session, purchase);
+      if (movedBalance(purchase)) rememberPurchase(session, purchase);
       return purchase;
     },
     refetchInterval: (query) => {
@@ -196,7 +196,7 @@ export function useCreatePurchase(session: Session) {
         keys.purchase(session.user.id, purchase.id),
         purchase,
       );
-      if (purchase.status === "paid") rememberPurchase(session, purchase);
+      if (movedBalance(purchase)) rememberPurchase(session, purchase);
     },
     onError: (error) => {
       // A pack that's gone: the list changed under the screen
@@ -216,13 +216,22 @@ export function useSimulatePurchase(session: Session) {
         keys.purchase(session.user.id, purchase.id),
         purchase,
       );
-      if (purchase.status === "paid") rememberPurchase(session, purchase);
+      if (movedBalance(purchase)) rememberPurchase(session, purchase);
     },
   });
 }
 
+/** Paid, or reversed after paying: either way the balance moved */
+function movedBalance(purchase: Purchase) {
+  return (
+    purchase.status === "paid" ||
+    purchase.status === "refunded" ||
+    purchase.status === "disputed"
+  );
+}
+
 /**
- * Credits that just arrived: the new balance everywhere (prices that didn't
+ * Credits that just arrived (or were taken back): the new balance everywhere (prices that didn't
  * fit may now), the statement, and /me (the session keeps a balance too)
  */
 function rememberPurchase(session: Session, purchase: Purchase) {
@@ -273,6 +282,15 @@ export function setBalance(session: Session, balance: number) {
     (quote) =>
       quote && { ...quote, balance, sufficient: balance >= quote.credits },
   );
+}
+
+/** A stream failed and the API returned its charge: back on the balance now */
+export function refundBalance(session: Session, credits: number) {
+  if (credits <= 0) return;
+  const balance = queryClient.getQueryData<number>(
+    keys.balance(session.user.id),
+  );
+  if (balance !== undefined) setBalance(session, balance + credits);
 }
 
 /** 409: the API priced this content differently than the cached quote */

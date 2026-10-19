@@ -33,15 +33,10 @@ export function FilterBarLoading({ q = "" }: { q?: string }) {
   );
 }
 
-/** "Type" is ours; the chips (and their counts) come from the facets */
+/** The chips (and their counts) come from the facets */
 export function TypeChipsSkeleton() {
-  const dict = useDictionary();
-
   return (
     <div className="flex flex-wrap items-center gap-1.5" aria-hidden="true">
-      <span className="mr-1 text-xs font-medium text-muted-foreground">
-        {dict.history.type}
-      </span>
       {["w-16", "w-20", "w-14"].map((width) => (
         <Skeleton key={width} className={`h-7 rounded-full ${width}`} />
       ))}

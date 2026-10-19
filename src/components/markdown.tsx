@@ -5,15 +5,14 @@ import {
   Markdown as TanStackMarkdown,
 } from "@tanstack/markdown/react";
 
-// Links open outside the panel
+// A second barrier (the API already strips them): the summary comes from a
+// model that read an untrusted page, so a link is only its text, never
+// something to click, and an image only its alt text, never loaded
 const components = {
-  a: (props) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  a: ({ children }) => <span>{children}</span>,
 } satisfies MarkdownComponents;
 
-// Images keep only their alt text: a summary has no business loading trackers.
-// Links keep the built-in policy, which strips executable protocols.
-const urlTransform: UrlTransform = (_url, kind, defaultUrl) =>
-  kind === "image" ? null : defaultUrl;
+const urlTransform: UrlTransform = () => null;
 
 // While text is still arriving, drop the empty heading or bullet a "## " or
 // "- " has just started, instead of flashing it

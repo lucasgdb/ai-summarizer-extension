@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { apiUrl } from "@/lib/api";
+import { authApiUrl } from "@/lib/api";
 import { AuthError, type AuthErrorReason, signInWithGoogle } from "@/lib/auth";
 import { useDictionary } from "@/lib/use-locale";
 import { GoogleIcon } from "./google-icon";
@@ -49,7 +49,7 @@ export function SignIn() {
       </Button>
       {message && (
         <p role="alert" className="mt-4 text-sm text-destructive">
-          {typeof message === "function" ? message(apiUrl) : message}
+          {typeof message === "function" ? message(authApiUrl) : message}
         </p>
       )}
     </section>

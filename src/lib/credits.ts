@@ -10,6 +10,8 @@ export type CreditTransaction = {
   kind:
     | "signup_bonus"
     | "purchase"
+    // A purchase's credits taken back (its PIX was refunded or disputed)
+    | "purchase_reversal"
     | "summary"
     | "translation"
     | "refund"
@@ -65,7 +67,10 @@ export type PurchaseStatus =
   | "paid"
   | "expired"
   | "cancelled"
-  | "failed";
+  | "failed"
+  // Only after "paid": reversed at the bank, its credits taken back
+  | "refunded"
+  | "disputed";
 
 /** A PIX charge for a pack (POST /credits/purchases and GET …/{id}) */
 export type Purchase = {

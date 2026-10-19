@@ -4,6 +4,7 @@ import type { Session } from "./auth";
 import {
   queryClient,
   refreshAfterFailure,
+  refundBalance,
   rememberTranslation,
   setBalance,
 } from "./queries";
@@ -21,6 +22,8 @@ export type TranslationFailure = {
   reason: SummaryErrorReason;
   price?: number;
   balance?: number;
+  /** "incomplete": what arrived before it failed (charged, not saved) */
+  partial?: SummaryShape;
 };
 
 type Entry = {
@@ -112,6 +115,8 @@ export async function startTranslation(
   update(id, (entry) => ({ ...entry, failure: null }));
   replace(shape);
 
+  // What onStart charged, to put back on the balance if it's refunded
+  let charged = 0;
   // Deltas arrive faster than it's worth re-rendering: one paint per frame
   let frame = 0;
   const change = (patch: Partial<SummaryShape>) => {
@@ -130,6 +135,7 @@ export async function startTranslation(
       price,
       {
         onStart: (charge) => {
+          charged = charge.credits;
           if (charge.credits > 0) setBalance(session, charge.credit_balance);
           change({ credits: charge.credits });
         },
@@ -151,6 +157,10 @@ export async function startTranslation(
     replace(null);
     const reason = error instanceof SummaryError ? error.reason : "unavailable";
     if (reason === "unauthorized") return;
+    // Returned by the API: on the balance right away (the refetch confirms)
+    if (error instanceof SummaryError && error.refunded) {
+      refundBalance(session, charged);
+    }
     const credits = error instanceof SummaryError ? error.credits : undefined;
     if (credits?.balance !== undefined) setBalance(session, credits.balance);
     if (reason === "price-changed" || reason === "insufficient") {
@@ -174,6 +184,11 @@ export async function startTranslation(
         reason,
         price: credits?.price,
         balance: credits?.balance,
+        // The title comes after the text: the summary's stands in
+        partial:
+          reason === "incomplete"
+            ? { ...shape, title: shape.title || summary.title }
+            : undefined,
       },
     }));
   }

@@ -66,6 +66,7 @@ import type { PdfDocument } from "@/lib/pdf";
 import {
   queryClient,
   refreshAfterFailure,
+  refundBalance,
   rememberSummary,
   setBalance,
   setQuotePrice,
@@ -96,7 +97,7 @@ const navSections = [
 // Signed out, or back to the price on the button, instead of an error screen
 type ShownSummaryError = Exclude<
   SummaryErrorReason,
-  "unauthorized" | "insufficient" | "price-changed"
+  "unauthorized" | "insufficient" | "price-changed" | "incomplete"
 >;
 
 type State =
@@ -114,6 +115,12 @@ type State =
   /** Charged and being written: the text shows up as the model writes it */
   | { status: "streaming"; content: PickedContent; draft: SummaryShape }
   | { status: "summarized"; content: PickedContent; summary: SummaryRecord }
+  /** Failed after the text started: charged, not saved, the partial text kept */
+  | {
+      status: "summary-incomplete";
+      content: PickedContent;
+      draft: SummaryShape;
+    }
   | {
       status: "summary-failed";
       content: PickedContent;
@@ -441,6 +448,8 @@ function Summarizer({ session }: { session: Session }) {
     setState({ status: "streaming", content, draft });
     window.scrollTo(0, 0);
 
+    // What onStart charged, to put back on the balance if it's refunded
+    let charged = 0;
     // Deltas arrive faster than it's worth re-rendering: one paint per frame
     let frame = 0;
     const update = (change: Partial<SummaryShape>) => {
@@ -460,6 +469,7 @@ function Summarizer({ session }: { session: Session }) {
         session.token,
         {
           onStart: (charge) => {
+            charged = charge.credits;
             setBalance(session, charge.credit_balance);
             update({ credits: charge.credits });
           },
@@ -477,14 +487,29 @@ function Summarizer({ session }: { session: Session }) {
       cancelAnimationFrame(frame);
       const reason =
         error instanceof SummaryError ? error.reason : "unavailable";
+      // Returned by the API: on the balance right away, then confirmed
+      if (error instanceof SummaryError && error.refunded) {
+        refundBalance(session, charged);
+      }
       if (
         reason === "unavailable" ||
         reason === "timeout" ||
-        reason === "interrupted"
+        reason === "interrupted" ||
+        reason === "incomplete"
       ) {
         refreshAfterFailure(session, { history: reason === "interrupted" });
       }
       if (signal.aborted) return;
+      // Charged and not saved: the text that arrived is all there is
+      if (reason === "incomplete") {
+        setState({
+          status: "summary-incomplete",
+          content,
+          // No title comes before the text ends: the page's stands in
+          draft: { ...draft, title: draft.title || content.title },
+        });
+        return;
+      }
       console.error(error);
       // Keeps the selection, so "Try again" doesn't mean picking again
       if (reason === "unauthorized") {
@@ -585,6 +610,7 @@ function Summarizer({ session }: { session: Session }) {
       session={session}
       onSummarize={runSummary}
       onReset={reset}
+      onReselect={(content) => setState({ status: "selected", content })}
       page={page}
       onPdfPages={choosePdfPages}
     />
@@ -602,6 +628,8 @@ type ContentProps = {
     generation: Generation,
   ) => void;
   onReset: () => void;
+  /** Back to the same content, to summarize it again */
+  onReselect: (content: PickedContent) => void;
   page: PageInfo | null | undefined;
   onPdfPages: (pages: PdfPages) => void;
 };
@@ -613,6 +641,7 @@ function Content({
   session,
   onSummarize,
   onReset,
+  onReselect,
   page,
   onPdfPages,
 }: ContentProps) {
@@ -702,6 +731,29 @@ function Content({
         <div className="space-y-5">
           <BackButton onClick={onReset}>{dict.back}</BackButton>
           <SummaryView summary={state.draft} streaming />
+        </div>
+      );
+
+    case "summary-incomplete":
+      return (
+        <div className="space-y-5">
+          <BackButton onClick={onReset}>{dict.back}</BackButton>
+          <Notice
+            icon={TriangleAlertIcon}
+            title={dict.summaryIncomplete.title}
+            actions={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onReselect(state.content)}
+              >
+                {dict.summaryIncomplete.backToSelection}
+              </Button>
+            }
+          >
+            {dict.summaryIncomplete.body}
+          </Notice>
+          <SummaryView summary={state.draft} />
         </div>
       );
 
@@ -875,7 +927,7 @@ function ErrorNotice({
   onReset,
 }: Omit<
   ContentProps,
-  "state" | "session" | "onSummarize" | "page" | "onPdfPages"
+  "state" | "session" | "onSummarize" | "page" | "onPdfPages" | "onReselect"
 > & {
   state: Extract<State, { status: "error" }>;
 }) {

@@ -74,8 +74,11 @@ export function formatList(locale: Locale, items: string[]) {
   }).format(items);
 }
 
+/** A typographic minus ("−1.000"), not a hyphen: a balance can go negative */
 export function formatNumber(locale: Locale, value: number) {
-  return new Intl.NumberFormat(localeConfig[locale].intl).format(value);
+  return new Intl.NumberFormat(localeConfig[locale].intl)
+    .format(value)
+    .replace("-", "\u2212");
 }
 
 /** "14:32" today, "15 Oct" this year, "15 Oct 2025" before */
@@ -145,6 +148,8 @@ const en = {
   },
 
   translate: {
+    incomplete: (language: string) =>
+      `The ${language} translation stopped partway through and wasn't saved. The credits stay charged.`,
     languages: "Language",
     translatedTo: (languages: string) => `Translated to ${languages}`,
     writtenIn: (language: string) => `Written in ${language}`,
@@ -255,6 +260,12 @@ const en = {
     },
   },
 
+  summaryIncomplete: {
+    title: "The summary is incomplete",
+    body: "It stopped partway through, so it wasn't saved to your history. The credits stay charged.",
+    backToSelection: "Back to the selection",
+  },
+
   signIn: {
     body: "Sign in to start summarizing.",
     google: "Continue with Google",
@@ -263,9 +274,20 @@ const en = {
       rejected: "Google didn't confirm this account. Try again.",
       offline: (url: string) => `Can't reach the server at ${url}.`,
       failed: "Couldn't sign in. Try again.",
+      "email-linked":
+        "This email is already linked to another account. Sign in with the original Google account or contact support.",
     },
   },
-  account: { menu: "Account", signOut: "Sign out" },
+  account: {
+    menu: "Account",
+    signOut: "Sign out",
+    signOutAll: "Sign out of all devices",
+    signOutAllTitle: "Sign out of all devices?",
+    signOutAllBody:
+      "Every session of this account ends, this one included. You'll need to sign in again everywhere.",
+    signOutAllConfirm: "Sign out everywhere",
+    signOutAllError: "Couldn't sign out of all devices. Try again.",
+  },
 
   nav: {
     label: "Main",
@@ -314,6 +336,12 @@ const en = {
     newPix: "Generate new PIX",
     failedTitle: "The payment didn't go through",
     failedBody: "Nothing was charged.",
+    refundedTitle: "Purchase refunded",
+    disputedTitle: "Purchase disputed",
+    reversedBody:
+      "This PIX was reversed at the bank, so its credits were taken back from your balance.",
+    tooManyPending:
+      "You already have open PIX charges. Pay one of them or wait for it to expire.",
   },
   options: {
     title: "Options",
@@ -356,7 +384,7 @@ const en = {
   credits: {
     title: "Credits",
     count: (n: number, formatted: string) =>
-      `${formatted} ${n === 1 ? "credit" : "credits"}`,
+      `${formatted} ${Math.abs(n) === 1 ? "credit" : "credits"}`,
     /** The unit alone, for "▭ credits" while the number loads */
     unit: "credits",
     balance: "Balance",
@@ -370,6 +398,7 @@ const en = {
       adjustment: "Adjustment",
       translation: "Translation",
       purchase: "Credit purchase",
+      purchase_reversal: "Purchase reversed",
     } as Record<string, string>,
     deletedSummary: "deleted summary",
     balanceAfter: (formatted: string) => `balance ${formatted}`,
@@ -382,6 +411,9 @@ const en = {
     priceChanged: (price: string) =>
       `The price changed to ${price}. Nothing was charged: summarize again to confirm.`,
     refunded: "Your credits were returned.",
+    negativeTitle: "Your balance is negative",
+    negativeBody:
+      "Credits from a purchase that was refunded or disputed were taken back. Buy credits to summarize and translate again.",
   },
   history: {
     title: "History",
@@ -475,6 +507,8 @@ const ptBr: Dictionary = {
   },
 
   translate: {
+    incomplete: (language) =>
+      `A tradução para ${language} parou no meio e não foi salva. Os créditos continuam cobrados.`,
     languages: "Idioma",
     translatedTo: (languages) => `Traduzido para ${languages}`,
     writtenIn: (language) => `Escrito em ${language}`,
@@ -584,6 +618,12 @@ const ptBr: Dictionary = {
     },
   },
 
+  summaryIncomplete: {
+    title: "O resumo ficou incompleto",
+    body: "Ele parou no meio, por isso não foi salvo no seu histórico. Os créditos continuam cobrados.",
+    backToSelection: "Voltar à seleção",
+  },
+
   signIn: {
     body: "Entre para começar a resumir.",
     google: "Continuar com o Google",
@@ -592,9 +632,21 @@ const ptBr: Dictionary = {
       rejected: "O Google não confirmou esta conta. Tente de novo.",
       offline: (url) => `Não foi possível conectar ao servidor em ${url}.`,
       failed: "Não foi possível entrar. Tente de novo.",
+      "email-linked":
+        "Este e-mail já está vinculado a outra conta. Entre com a conta Google original ou fale com o suporte.",
     },
   },
-  account: { menu: "Conta", signOut: "Sair" },
+  account: {
+    menu: "Conta",
+    signOut: "Sair",
+    signOutAll: "Sair de todos os dispositivos",
+    signOutAllTitle: "Sair de todos os dispositivos?",
+    signOutAllBody:
+      "Todas as sessões desta conta terminam, inclusive esta. Você vai precisar entrar de novo em todos os lugares.",
+    signOutAllConfirm: "Sair de todos",
+    signOutAllError:
+      "Não foi possível sair de todos os dispositivos. Tente de novo.",
+  },
 
   nav: {
     label: "Principal",
@@ -639,6 +691,12 @@ const ptBr: Dictionary = {
     newPix: "Gerar novo PIX",
     failedTitle: "O pagamento não foi concluído",
     failedBody: "Nada foi cobrado.",
+    refundedTitle: "Compra reembolsada",
+    disputedTitle: "Compra contestada",
+    reversedBody:
+      "Este PIX foi revertido no banco, por isso os créditos dele foram retirados do seu saldo.",
+    tooManyPending:
+      "Você já tem PIX em aberto. Pague um deles ou espere expirar.",
   },
   options: {
     title: "Opções",
@@ -672,7 +730,8 @@ const ptBr: Dictionary = {
   },
   credits: {
     title: "Créditos",
-    count: (n, formatted) => `${formatted} ${n === 1 ? "crédito" : "créditos"}`,
+    count: (n, formatted) =>
+      `${formatted} ${Math.abs(n) === 1 ? "crédito" : "créditos"}`,
     unit: "créditos",
     balance: "Saldo",
     about:
@@ -685,6 +744,7 @@ const ptBr: Dictionary = {
       adjustment: "Ajuste",
       translation: "Tradução",
       purchase: "Compra de créditos",
+      purchase_reversal: "Compra estornada",
     },
     deletedSummary: "resumo excluído",
     balanceAfter: (formatted) => `saldo ${formatted}`,
@@ -697,6 +757,9 @@ const ptBr: Dictionary = {
     priceChanged: (price) =>
       `O preço mudou para ${price}. Nada foi cobrado: resuma de novo para confirmar.`,
     refunded: "Seus créditos foram devolvidos.",
+    negativeTitle: "Seu saldo está negativo",
+    negativeBody:
+      "Os créditos de uma compra reembolsada ou contestada foram retirados. Compre créditos para voltar a resumir e traduzir.",
   },
   history: {
     title: "Histórico",

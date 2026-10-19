@@ -108,8 +108,11 @@ export type SummaryShape = Pick<
   | "credits"
   | "created_at"
 > &
-  // Known once saved: the "TXT"/"PDF"/"Selection" badge
-  Partial<Pick<SummaryRecord, "source_type" | "file_extension">>;
+  // Known once saved: the "TXT"/"PDF"/"Selection" badge, and the site even
+  // when the API kept no URL (it only stores http, https and file ones)
+  Partial<
+    Pick<SummaryRecord, "source_type" | "file_extension" | "source_host">
+  >;
 
 /**
  * A summary as the API stores it, or one being written (`streaming`): the
@@ -127,7 +130,7 @@ export function SummaryView({
 }) {
   const locale = useLocale();
   const dict = getDictionary(locale);
-  const host = hostname(summary.source_url);
+  const host = summary.source_host ?? hostname(summary.source_url);
   const hasContent = summary.content !== "";
   const meta = useSummaryMeta(summary);
 
@@ -151,19 +154,24 @@ export function SummaryView({
           <time dateTime={summary.created_at}>
             {formatDate(locale, summary.created_at)}
           </time>
-          {host && summary.source_url && (
+          {host && (
             <>
               <span aria-hidden="true">·</span>
-              <a
-                href={summary.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={summary.source_title ?? undefined}
-                className="inline-flex items-center gap-0.5 transition-colors hover:text-foreground"
-              >
-                {host}
-                <ArrowUpRightIcon className="size-3" />
-              </a>
+              {summary.source_url ? (
+                <a
+                  href={summary.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={summary.source_title ?? undefined}
+                  className="inline-flex items-center gap-0.5 transition-colors hover:text-foreground"
+                >
+                  {host}
+                  <ArrowUpRightIcon className="size-3" />
+                </a>
+              ) : (
+                // No URL kept: the site, but nothing to open
+                <span title={summary.source_title ?? undefined}>{host}</span>
+              )}
             </>
           )}
           {summary.source_type && (
@@ -185,8 +193,10 @@ export function SummaryView({
         <ContentSkeleton />
       )}
 
-      <footer className="flex min-h-9 items-center gap-2 border-t pt-2">
-        <p className="truncate text-xs text-muted-foreground tabular-nums">
+      {/* The actions move to a line of their own when the meta wouldn't fit
+          beside them (a narrow panel), instead of cutting it short */}
+      <footer className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 border-t pt-2">
+        <p className="min-w-48 flex-1 truncate text-xs text-muted-foreground tabular-nums">
           {meta ?? <TextSkeleton className="w-36" />}
         </p>
         {streaming ? (
@@ -199,7 +209,7 @@ export function SummaryView({
           )
         ) : (
           // Still loading from the history: same buttons, nothing to copy yet
-          <div className="-mr-2 ml-auto flex items-center">
+          <div className="-mr-2 ml-auto flex shrink-0 items-center">
             <CopyButton text={summary.content} disabled={!hasContent} />
             <ExportButton summary={summary} disabled={!hasContent} />
             {actions}

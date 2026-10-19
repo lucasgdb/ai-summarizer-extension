@@ -1,4 +1,5 @@
 import { HistoryIcon, LanguagesIcon, SearchXIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { InfiniteList } from "@/components/infinite-list";
 import { SourceBadge } from "@/components/source-badge";
 import { useSummaryMeta } from "@/components/summary-view";
@@ -15,6 +16,7 @@ import {
 import { useHistory } from "@/lib/queries";
 import type { HistoryFilter, HistoryItem } from "@/lib/summaries";
 import { useDictionary, useLocale } from "@/lib/use-locale";
+import { cn } from "@/lib/utils";
 import { HistoryRowsSkeleton } from "./skeletons";
 
 /**
@@ -52,6 +54,27 @@ function Languages({
   );
 }
 
+/** One piece of the meta line, with the "·" before it (see HistoryRow) */
+function MetaPiece({
+  children,
+  truncate = false,
+}: {
+  children: ReactNode;
+  /** A long host shrinks to "…" instead of taking a line */
+  truncate?: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "relative pl-3 before:absolute before:left-[0.3rem] before:content-['·']",
+        truncate ? "min-w-0 max-w-full truncate" : "whitespace-nowrap",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 function HistoryRow({
   item,
   onOpen,
@@ -80,32 +103,30 @@ function HistoryRow({
           {item.preview}
         </p>
       )}
-      {/* Wraps on narrow panels; the virtualizer measures the real height */}
-      <p className="mt-1.5 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground tabular-nums">
-        <time dateTime={item.created_at}>
-          {formatDate(locale, item.created_at)}
-        </time>
-        {host && (
-          <>
-            <span aria-hidden="true">·</span>
-            <span className="max-w-full truncate">{host}</span>
-          </>
-        )}
-        {meta !== "" && (
-          <>
-            <span aria-hidden="true">·</span>
-            {meta ?? <TextSkeleton className="w-28" />}
-          </>
-        )}
-        {(item.language || (item.translations?.length ?? 0) > 0) && (
-          <>
-            <span aria-hidden="true">·</span>
-            <Languages
-              original={item.language}
-              translations={item.translations ?? []}
-            />
-          </>
-        )}
+      {/* Wraps on narrow panels (the virtualizer measures the real height).
+          Each piece carries its "·" in its own left padding, and the pieces
+          are pulled left by that padding inside a clipping box: a piece that
+          starts a line has its dot cut off, so no line begins with "·" */}
+      <p className="mt-1.5 overflow-hidden text-xs text-muted-foreground tabular-nums">
+        <span className="-ml-3 flex flex-wrap">
+          <MetaPiece>
+            <time dateTime={item.created_at}>
+              {formatDate(locale, item.created_at)}
+            </time>
+          </MetaPiece>
+          {host && <MetaPiece truncate>{host}</MetaPiece>}
+          {meta !== "" && (
+            <MetaPiece>{meta ?? <TextSkeleton className="w-28" />}</MetaPiece>
+          )}
+          {(item.language || (item.translations?.length ?? 0) > 0) && (
+            <MetaPiece>
+              <Languages
+                original={item.language}
+                translations={item.translations ?? []}
+              />
+            </MetaPiece>
+          )}
+        </span>
       </p>
     </button>
   );

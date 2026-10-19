@@ -298,9 +298,8 @@ export function HistoryFilters({
           // Chips with an "All" that starts selected: seeing one filled in makes
           // it obvious the others can be picked too
           <fieldset className="flex flex-wrap items-center gap-1.5">
-            <legend className="float-left mr-1 text-xs font-medium text-muted-foreground">
-              {dict.history.type}
-            </legend>
+            {/* For screen readers: the chips name the types themselves */}
+            <legend className="sr-only">{dict.history.type}</legend>
             <ToggleChip
               label={dict.history.allTypes}
               count={chips.reduce((sum, { count }) => sum + count, 0)}

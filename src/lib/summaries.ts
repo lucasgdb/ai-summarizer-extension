@@ -235,6 +235,7 @@ export type SummaryErrorReason =
   | "unavailable" // AI not configured (503) or failed upstream (502), refunded
   | "timeout" // 504 or the model timed out mid-stream, refunded
   | "interrupted" // the stream dropped: it may still finish and be charged
+  | "incomplete" // failed after the text started: charged, not saved
   | "invalid"; // 400: the API rejected the request
 
 export class SummaryError extends Error {
@@ -244,6 +245,8 @@ export class SummaryError extends Error {
     readonly credits?: { price: number; balance?: number },
     /** The API's message, shown for 400s ("unknown model", ...) */
     readonly detail?: string,
+    /** From a stream's `error` event: the charge was returned */
+    readonly refunded?: boolean,
   ) {
     super(detail ?? reason);
   }
@@ -382,12 +385,20 @@ async function streamPost<Done>(
           case "done":
             return parse<Done>(data);
           case "error": {
-            // Already refunded by the API
-            const failure = parse<{ error: string }>(data);
+            // refunded: the API returned the charge (the partial text can
+            // go). Not refunded: it failed after the text started, so it
+            // stays charged, and the partial text is all there is
+            const failure = parse<{ error: string; refunded?: boolean }>(data);
+            const refunded = failure.refunded !== false;
             throw new SummaryError(
-              /timed out/i.test(failure.error) ? "timeout" : "unavailable",
+              !refunded
+                ? "incomplete"
+                : /timed out/i.test(failure.error)
+                  ? "timeout"
+                  : "unavailable",
               undefined,
               failure.error,
+              refunded,
             );
           }
         }

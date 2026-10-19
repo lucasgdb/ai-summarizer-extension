@@ -53,6 +53,7 @@ function purchaseError(dict: Dictionary, error: unknown) {
   }
   if (error instanceof ApiError) {
     if (error.status === 400) return dict.buy.packChanged;
+    if (error.status === 429) return dict.buy.tooManyPending;
     if (error.status === 502) return dict.buy.providerDown;
     if (error.status === 503) return dict.buy.notConfigured;
   }
@@ -325,6 +326,32 @@ function PurchaseView({
         <Button className="mt-6" onClick={onDone}>
           {dict.buy.done}
         </Button>
+      </div>
+    );
+  }
+
+  // Final, after "paid": the bank reversed it and the credits went back
+  if (status === "refunded" || status === "disputed") {
+    return (
+      <div className="space-y-3">
+        <PurchaseSummary purchase={purchase} amount={amount} />
+        <Notice
+          icon={TriangleAlertIcon}
+          variant="destructive"
+          title={
+            status === "refunded"
+              ? dict.buy.refundedTitle
+              : dict.buy.disputedTitle
+          }
+          actions={
+            <Button variant="outline" size="sm" onClick={onDone}>
+              {dict.buy.done}
+            </Button>
+          }
+        >
+          {dict.buy.reversedBody}{" "}
+          {dict.buy.newBalance(formatCredits(locale, purchase.credit_balance))}
+        </Notice>
       </div>
     );
   }

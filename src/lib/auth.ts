@@ -1,16 +1,20 @@
 import { browser, storage } from "#imports";
-import { ApiUnreachableError, api } from "./api";
+import { ApiUnreachableError, api, authApiUrl } from "./api";
 
 // Web application OAuth client whose redirect URIs include
 // browser.identity.getRedirectURL() (https://<extension-id>.chromiumapp.org/)
 const googleClientId = import.meta.env.WXT_GOOGLE_CLIENT_ID ?? "";
 
+/** This extension's app in lb-auth-api (auth.apps) */
+const app = "ai-summarizer";
+
+/** lb-auth-api's user: the same id in every lb-platform app */
 export type User = {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   avatar_url: string | null;
-  /** From GET /me; the live value is the credits query */
+  /** Not from lb-auth-api: the balance is the credits query (GET /credits) */
   credit_balance?: number;
 };
 
@@ -33,6 +37,9 @@ export type AuthErrorReason =
   | "not-configured" // no client id here, or 503 from the API
   | "rejected" // 401: the API didn't accept the Google token
   | "offline"
+  // 409: the email belongs to another account, and Google doesn't vouch that
+  // it's the same owner (an email outside Gmail and Workspace)
+  | "email-linked"
   | "failed";
 
 export class AuthError extends Error {
@@ -98,7 +105,8 @@ export async function signInWithGoogle(): Promise<Session | null> {
   try {
     response = await api("/auth/google", {
       method: "POST",
-      body: { id_token: idToken, nonce },
+      body: { id_token: idToken, nonce, app },
+      base: authApiUrl,
     });
   } catch (error) {
     if (error instanceof ApiUnreachableError) throw new AuthError("offline");
@@ -109,9 +117,11 @@ export async function signInWithGoogle(): Promise<Session | null> {
     const reason =
       response.status === 401
         ? "rejected"
-        : response.status === 503
-          ? "not-configured"
-          : "failed";
+        : response.status === 409
+          ? "email-linked"
+          : response.status === 503
+            ? "not-configured"
+            : "failed";
     const body: { error?: string } = await response.json().catch(() => ({}));
     throw new AuthError(reason, body.error);
   }
@@ -130,15 +140,36 @@ export async function signInWithGoogle(): Promise<Session | null> {
 export async function signOut(session: Session) {
   await sessionItem.setValue(null);
   try {
-    await api("/auth/logout", { method: "POST", token: session.token });
+    await api("/auth/logout", {
+      method: "POST",
+      token: session.token,
+      base: authApiUrl,
+    });
   } catch {}
+}
+
+/**
+ * Ends every session of the account on the API, this one included. The local
+ * copy goes only once the API confirms (or no longer knows the session): a
+ * failure here must not look like it worked on the other devices
+ */
+export async function signOutEverywhere(session: Session) {
+  const response = await api("/auth/logout-all", {
+    method: "POST",
+    token: session.token,
+    base: authApiUrl,
+  });
+  if (!response.ok && response.status !== 401) {
+    throw new Error(`logout-all: HTTP ${response.status}`);
+  }
+  await sessionItem.setValue(null);
 }
 
 /** Refreshes the user (name, picture) and drops sessions the API revoked */
 export async function refreshUser(session: Session) {
   let response: Response;
   try {
-    response = await api("/me", { token: session.token });
+    response = await api("/me", { token: session.token, base: authApiUrl });
   } catch {
     return; // Offline: keep the session, summaries will say so
   }
@@ -148,7 +179,10 @@ export async function refreshUser(session: Session) {
   }
   if (response.ok) {
     const user: User = await response.json();
-    await sessionItem.setValue({ ...session, user });
+    await sessionItem.setValue({
+      ...session,
+      user: { ...user, credit_balance: session.user.credit_balance },
+    });
   }
 }
 
