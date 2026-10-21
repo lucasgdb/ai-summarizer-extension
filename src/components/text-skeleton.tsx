@@ -9,7 +9,7 @@ export function TextSkeleton({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "inline-block h-[0.85em] animate-pulse rounded-sm bg-muted align-[-0.1em]",
+        "inline-block h-[0.85em] animate-pulse rounded-sm bg-skeleton align-[-0.1em]",
         className,
       )}
     />

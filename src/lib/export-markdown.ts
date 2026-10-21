@@ -9,8 +9,11 @@ type Exportable = {
   created_at: string;
 };
 
-/** "go-linguagem-compilada" from "Go: linguagem compilada", for the file name */
-function slug(title: string) {
+/**
+ * "go-linguagem-compilada" from "Go: linguagem compilada", for the file name
+ * (the Markdown export and the audio's)
+ */
+export function slug(title: string) {
   const base = title
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")

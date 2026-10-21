@@ -1,5 +1,6 @@
 import { HistoryIcon, LanguagesIcon, SearchXIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { Hint } from "@/components/hint";
 import { InfiniteList } from "@/components/infinite-list";
 import { SourceBadge } from "@/components/source-badge";
 import { useSummaryMeta } from "@/components/summary-view";
@@ -43,14 +44,13 @@ function Languages({
     .join(" · ");
 
   return (
-    <span
-      title={description}
-      className="inline-flex shrink-0 items-center gap-1 uppercase"
-    >
-      <LanguagesIcon className="size-3.5" aria-hidden="true" />
-      <span aria-hidden="true">{codes.join(" · ")}</span>
-      <span className="sr-only">{description}</span>
-    </span>
+    <Hint label={description}>
+      <span className="inline-flex shrink-0 items-center gap-1 uppercase">
+        <LanguagesIcon className="size-3.5" aria-hidden="true" />
+        <span aria-hidden="true">{codes.join(" · ")}</span>
+        <span className="sr-only">{description}</span>
+      </span>
+    </Hint>
   );
 }
 

@@ -6,8 +6,7 @@ import type { SummaryOptions } from "./summaries";
 const fallbackInstructionsLength = 300;
 
 /**
- * Validates the options form against what the API offers right now (models
- * come from its database). Zod implements Standard Schema, which TanStack Form
+ * Validates the options form against what the API offers right now. Zod implements Standard Schema, which TanStack Form
  * validates with directly.
  */
 export function generationSchema(
@@ -21,7 +20,6 @@ export function generationSchema(
   const max = options?.max_instructions_length ?? fallbackInstructionsLength;
 
   return z.object({
-    model: oneOf(options?.models.map((model) => model.id)),
     style: oneOf(options?.styles),
     length: oneOf(options?.lengths),
     effort: oneOf(options?.efforts),

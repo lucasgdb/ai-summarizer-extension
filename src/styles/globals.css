@@ -44,6 +44,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-skeleton: var(--skeleton);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -76,6 +77,8 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
+  /* Not --muted: at 0.97 on a 0.985 background, a loading shape vanishes */
+  --skeleton: oklch(0.922 0 0);
   /* 0.53, not shadcn's 0.556: small text on --muted needs 4.5:1 too */
   --muted-foreground: oklch(0.53 0 0);
   --accent: oklch(0.97 0 0);
@@ -112,6 +115,7 @@
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
+    --skeleton: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
@@ -155,6 +159,13 @@
    any layer, so it would beat the one above: body needs it, unlayered */
 body {
   font-family: var(--font-sans);
+}
+
+/* The toolbar popup has no size of its own: the panel's usual width, and
+   Chrome's tallest popup (600px), which scrolls inside like the panel */
+html[data-mode="popup"] body {
+  width: 25rem;
+  height: 600px;
 }
 
 ::selection {

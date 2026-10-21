@@ -1,0 +1,115 @@
+/* Video.js in the panel's look: the theme's tokens, rounded corners, a thin
+   progress bar in the foreground color, no gray box on the big play button */
+
+.video-js.vjs-panel {
+  font-family: var(--font-sans);
+  border-radius: var(--radius-md, 0.5rem);
+  overflow: hidden;
+  background: #000;
+}
+
+.vjs-panel .vjs-control-bar {
+  height: 2.75rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.65), transparent);
+  font-size: 0.8125rem;
+}
+
+.vjs-panel .vjs-big-play-button {
+  width: 3.25rem;
+  height: 3.25rem;
+  margin: 0;
+  translate: -50% -50%;
+  top: 50%;
+  left: 50%;
+  border: 0;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.92);
+  color: #0a0a0a;
+  line-height: 3.25rem;
+  font-size: 2rem;
+  transition: transform 120ms ease-out;
+}
+
+.vjs-panel:hover .vjs-big-play-button,
+.vjs-panel .vjs-big-play-button:focus {
+  background: #fff;
+  transform: scale(1.05);
+}
+
+.vjs-panel .vjs-progress-control .vjs-progress-holder {
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.25);
+}
+
+.vjs-panel .vjs-load-progress,
+.vjs-panel .vjs-load-progress div {
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.35);
+}
+
+.vjs-panel .vjs-play-progress {
+  border-radius: 9999px;
+  background: #fff;
+}
+
+/* A visible thumb at the head of the bar, like the panel's sliders */
+.vjs-panel .vjs-play-progress::before {
+  top: 50%;
+  translate: 0 -50%;
+  font-size: 0.75rem;
+}
+
+.vjs-panel .vjs-slider:focus-visible,
+.vjs-panel .vjs-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  text-shadow: none;
+}
+
+.vjs-panel .vjs-time-control {
+  padding: 0 0.25rem;
+  min-width: auto;
+  line-height: 2.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Current / total time between the volume and the progress bar, like the
+   audio player (Video.js's skin hides them for the remaining time). Two
+   classes deep, as specific as the rule that hides them */
+.video-js.vjs-panel .vjs-current-time,
+.video-js.vjs-panel .vjs-time-divider,
+.video-js.vjs-panel .vjs-duration {
+  display: block;
+}
+
+.video-js.vjs-panel .vjs-time-divider {
+  padding: 0;
+}
+
+/* The speed menu's slot (a shadcn dropdown, see SpeedMenu): a control like
+   the others, its button sized like the time next to it */
+.vjs-panel .vjs-speed-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vjs-panel .vjs-poster,
+.vjs-panel .vjs-tech {
+  border-radius: inherit;
+}
+
+/* The play head's own time tooltip: near the start, Video.js keeps pulling
+   it back inside the bar on every update, so it jitters. The current time
+   is in the control bar already; the cursor's tooltip stays */
+.video-js.vjs-panel .vjs-progress-control .vjs-play-progress .vjs-time-tooltip {
+  display: none;
+}
+
+/* The play head's own time tooltip: the current time is in the control bar
+   already, and the cursor's tooltip says where a click lands. Near the start
+   Video.js also keeps pulling it back inside the bar, so it jittered */
+.video-js.vjs-panel .vjs-progress-control .vjs-play-progress .vjs-time-tooltip {
+  display: none;
+}

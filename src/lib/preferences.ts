@@ -24,10 +24,10 @@ function pick(value: string | undefined, allowed: string[], fallback: string) {
 }
 
 /**
- * What is actually sent. Saved choices the API no longer offers (a model
- * deactivated in the database, say) fall back to its defaults instead of a 400.
- * Without the options, only what was saved is sent (except the model); the
- * API fills in the rest.
+ * What is actually sent. Saved choices the API no longer offers fall back to
+ * its defaults instead of a 400. Without the options, only what was saved is
+ * sent; the API fills in the rest. Never a model: the API picks it (the
+ * cheapest, with a fallback), and a model saved before is just left out
  */
 export function resolveGeneration(
   preferences: Preferences,
@@ -37,10 +37,6 @@ export function resolveGeneration(
   const instructions = preferences.instructions.trim();
   if (!options) {
     return {
-      // Models come and go (deactivated, a provider without a key): a saved
-      // one can't be checked here, so the API picks its default instead of a
-      // possible 400 "unknown model". The fixed lists are safe to send
-      model: undefined,
       effort: preferences.effort || undefined,
       style: preferences.style || undefined,
       length: preferences.length || undefined,
@@ -56,11 +52,6 @@ export function resolveGeneration(
       preferences.language,
       options.languages,
       pick(uiLanguage(locale), options.languages, defaults.language),
-    ),
-    model: pick(
-      preferences.model,
-      options.models.map((model) => model.id),
-      defaults.model,
     ),
     effort: pick(preferences.effort, options.efforts, defaults.effort),
     style: pick(preferences.style, options.styles, defaults.style),

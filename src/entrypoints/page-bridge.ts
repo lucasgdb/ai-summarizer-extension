@@ -1,10 +1,23 @@
 import { browser, defineUnlistedScript } from "#imports";
 import { extract, mainContent } from "@/lib/bridge/extract";
+import {
+  abortFill,
+  applyAnswer,
+  applyDelta,
+  beginFill,
+  finishFill,
+  formRegion,
+  scanPage,
+  scanPick,
+  undoFill,
+} from "@/lib/bridge/forms";
 import { startPicker } from "@/lib/bridge/picker";
 import { countWords, toMarkdown } from "@/lib/bridge/to-markdown";
 import {
   type BridgeRequest,
   type BridgeResponse,
+  formFillPortName,
+  formPickerPortName,
   maxPdfBytes,
   type PickerPanelMessage,
   type PickerPortMessage,
@@ -15,7 +28,8 @@ import {
 
 declare global {
   interface Window {
-    __aiSummarizerBridge?: true;
+    /** The build that installed the listeners in this tab */
+    __aiSummarizerBridge?: string;
   }
 }
 
@@ -79,12 +93,63 @@ async function readPdf(): Promise<ReadPdfResponse> {
 // the manifest, so the extension only touches pages the user points it at.
 export default defineUnlistedScript(() => {
   // Each injection re-runs this file in the same isolated world
-  if (window.__aiSummarizerBridge) return;
-  window.__aiSummarizerBridge = true;
+  // Once per build: re-running this build is a no-op, but a tab still holding
+  // an older build's script (from before the extension updated) gets this one.
+  // The old listeners died with the old extension context
+  if (window.__aiSummarizerBridge === __BRIDGE_BUILD__) return;
+  window.__aiSummarizerBridge = __BRIDGE_BUILD__;
+
+  // Fill steps run one at a time, in arrival order: an answer's clicks (and
+  // their waits) finish before the next delta is typed
+  let queue: Promise<unknown> = Promise.resolve();
+  const enqueue = <T>(step: () => T | Promise<T>) => {
+    const run = queue.then(step);
+    queue = run.catch(() => {});
+    return run;
+  };
+  // A streamed fill in progress, until its finish or abort
+  let filling = false;
 
   browser.runtime.onMessage.addListener(
     (message: BridgeRequest, _sender, sendResponse) => {
       switch (message.type) {
+        case "fill-begin":
+          enqueue(() => {
+            filling = true;
+            beginFill();
+          }).then(() => sendResponse(true));
+          return true;
+        case "fill-delta":
+          enqueue(() => {
+            if (filling) applyDelta(message.id, message.text);
+          }).then(() => sendResponse(true));
+          return true;
+        case "fill-answer":
+          enqueue(() =>
+            filling ? applyAnswer(message.answer) : ("failed" as const),
+          ).then(sendResponse, (error) => {
+            // Always an answer: silence would read as "the page went away"
+            console.error("[ai-summarizer] fill answer", error);
+            sendResponse("failed");
+          });
+          return true;
+        case "fill-finish":
+          enqueue(async () => {
+            const report = await finishFill(message.answers);
+            filling = false;
+            return report;
+          }).then(sendResponse, (error) => {
+            console.error("[ai-summarizer] fill finish", error);
+            filling = false;
+            sendResponse(null);
+          });
+          return true;
+        case "fill-abort":
+          enqueue(() => {
+            if (filling) abortFill();
+            filling = false;
+          }).then(() => sendResponse(true));
+          return true;
         case "read-page":
           sendResponse(extract(mainContent(), "page") satisfies BridgeResponse);
           return;
@@ -96,23 +161,50 @@ export default defineUnlistedScript(() => {
           readPdf().then(sendResponse);
           // Keeps the channel open for the async answer
           return true;
+        case "scan-form":
+          sendResponse(scanPage());
+          return;
+        case "undo-fill":
+          undoFill().then(sendResponse);
+          // Keeps the channel open: the clicks go one at a time
+          return true;
       }
     },
   );
 
   browser.runtime.onConnect.addListener((port) => {
-    if (port.name !== pickerPortName) return;
+    // The panel closed mid-fill: nothing more is applied, and a field caught
+    // mid-typing goes back as it was
+    if (port.name === formFillPortName) {
+      port.onDisconnect.addListener(() => {
+        enqueue(() => {
+          if (filling) abortFill();
+          filling = false;
+        });
+      });
+      return;
+    }
+    if (port.name !== pickerPortName && port.name !== formPickerPortName) {
+      return;
+    }
+    const forForm = port.name === formPickerPortName;
 
     const post = (message: PickerPortMessage) => port.postMessage(message);
     const picker = startPicker({
       onPick: (element) => {
-        post({ type: "selected", content: extract(element, "element") });
+        post(
+          forForm
+            ? { type: "form", form: scanPick(element) }
+            : { type: "selected", content: extract(element, "element") },
+        );
         port.disconnect();
       },
       onCancel: () => {
         post({ type: "cancelled" });
         port.disconnect();
       },
+      // Picking a form: the whole form lights up, wherever the mouse is in it
+      snap: forForm ? formRegion : undefined,
     });
     port.onMessage.addListener((message: PickerPanelMessage) => {
       if (message.type === "command") picker.run(message.command);

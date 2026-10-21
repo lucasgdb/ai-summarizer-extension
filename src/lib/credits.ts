@@ -14,6 +14,12 @@ export type CreditTransaction = {
     | "purchase_reversal"
     | "summary"
     | "translation"
+    // Filling a form (/forms/fill): not in the history, only here
+    | "form_fill"
+    // A summary read aloud (summary_title is the summary's)
+    | "audio"
+    // A summary as narrated slides (summary_title is the summary's)
+    | "video"
     | "refund"
     | "adjustment";
   summary_id: string | null;

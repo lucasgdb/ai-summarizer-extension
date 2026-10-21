@@ -17,8 +17,10 @@ import {
   type Purchase,
   simulatePurchase,
 } from "./credits";
+import { type FillChoices, getFormOptions, quoteFill } from "./forms";
 import type { Locale } from "./i18n";
-import type { PickedContent } from "./messages";
+import { type MediaKind, quoteMedia } from "./media";
+import type { PickedContent, ScannedForm } from "./messages";
 import { ApiError, type Page, UnauthorizedError } from "./requests";
 import {
   deleteOriginal,
@@ -271,6 +273,70 @@ export function useQuote(
     // Changing an option keeps the old price on screen (dimmed, not clickable)
     // instead of flashing a spinner
     placeholderData: keepPreviousData,
+  });
+}
+
+/** What the fill screen's selectors offer; public and rarely changes */
+export function useFormOptions() {
+  return useQuery({
+    queryKey: ["form-options"],
+    queryFn: ({ signal }) => getFormOptions(signal),
+  });
+}
+
+/**
+ * The price of filling `form` with `context` and `choices`. Keyed by the
+ * scan (its fields), so picking another form prices again
+ */
+export function useFillQuote(
+  session: Session,
+  form: ScannedForm,
+  context: string,
+  choices: FillChoices,
+  enabled: boolean,
+) {
+  return useQuery({
+    enabled,
+    queryKey: [
+      "quote",
+      session.user.id,
+      "fill",
+      form.url,
+      form.fields,
+      context,
+      choices,
+    ],
+    queryFn: ({ signal }) =>
+      quoteFill(session.token, form, context, choices, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The price of a summary as audio or video in `language` (undefined: the
+ * original), or the file itself when it exists already (or is being made)
+ */
+export function useMediaQuote(
+  kind: MediaKind,
+  session: Session,
+  summaryId: string,
+  language: string | undefined,
+) {
+  return useQuery({
+    queryKey: ["media-quote", session.user.id, summaryId, kind, language ?? ""],
+    queryFn: ({ signal }) =>
+      quoteMedia(kind, session.token, summaryId, language, signal),
+    // Made elsewhere (another tab, or before the panel closed) shows up on
+    // the next open
+    staleTime: 0,
+  });
+}
+
+/** After generating, deleting or a failure: price (or play) it again */
+export function refreshMediaQuotes(session: Session, summaryId: string) {
+  queryClient.invalidateQueries({
+    queryKey: ["media-quote", session.user.id, summaryId],
   });
 }
 

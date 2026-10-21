@@ -1,5 +1,7 @@
 import { browser, storage } from "#imports";
 import { ApiUnreachableError, api, authApiUrl } from "./api";
+import type { BackgroundRequest } from "./messages";
+import type { UiMode } from "./ui-mode";
 
 // Web application OAuth client whose redirect URIs include
 // browser.identity.getRedirectURL() (https://<extension-id>.chromiumapp.org/)
@@ -73,10 +75,12 @@ function googleAuthUrl(nonce: string) {
 }
 
 /**
- * Opens Google's account chooser in a popup and trades the ID token for an API
- * session. Resolves with null when the user closes the popup.
+ * Opens Google's account chooser in its own window and trades the ID token
+ * for an API session. Run by the side panel, or by the background for the
+ * popup (which that window closes). Resolves with null when the user closes
+ * the window.
  */
-export async function signInWithGoogle(): Promise<Session | null> {
+export async function googleSignInFlow(): Promise<Session | null> {
   if (!googleClientId) {
     throw new AuthError("not-configured", "WXT_GOOGLE_CLIENT_ID is not set");
   }
@@ -134,6 +138,50 @@ export async function signInWithGoogle(): Promise<Session | null> {
   };
   await sessionItem.setValue(session);
   return session;
+}
+
+/** The background's sign-in, as it goes (storage.session: extension pages only) */
+export type SignInState =
+  | { status: "pending"; attempt: string }
+  | { status: "done"; attempt: string; signedIn: boolean }
+  | { status: "error"; attempt: string; reason: AuthErrorReason };
+
+export const signInStateItem = storage.defineItem<SignInState | null>(
+  "session:sign-in",
+  { fallback: null },
+);
+
+/**
+ * Signs in with Google. The side panel runs the flow itself, right in the
+ * click, so Google's window opens in front. The popup closes as soon as that
+ * window opens, so it hands the flow to the background and waits for this
+ * attempt's outcome in storage. Either way the session lands in storage, so
+ * every open panel (and the popup, reopened) is signed in by itself.
+ * Resolves false when the user closed Google's window
+ */
+export async function signInWithGoogle(mode: UiMode): Promise<boolean> {
+  if (mode === "sidepanel") return (await googleSignInFlow()) !== null;
+
+  const attempt = crypto.randomUUID();
+  let unwatch = () => {};
+  const outcome = new Promise<SignInState>((resolve) => {
+    unwatch = signInStateItem.watch((state) => {
+      if (state?.attempt === attempt && state.status !== "pending") {
+        resolve(state);
+      }
+    });
+  });
+  try {
+    await browser.runtime.sendMessage({
+      type: "sign-in",
+      attempt,
+    } satisfies BackgroundRequest);
+    const state = await outcome;
+    if (state.status === "error") throw new AuthError(state.reason);
+    return state.status === "done" && state.signedIn;
+  } finally {
+    unwatch();
+  }
 }
 
 /** Ends the session on the API too; the local copy goes even if that fails */

@@ -5,6 +5,7 @@ import {
   DownloadIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -158,19 +159,22 @@ export function SummaryView({
             <>
               <span aria-hidden="true">·</span>
               {summary.source_url ? (
-                <a
-                  href={summary.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={summary.source_title ?? undefined}
-                  className="inline-flex items-center gap-0.5 transition-colors hover:text-foreground"
-                >
-                  {host}
-                  <ArrowUpRightIcon className="size-3" />
-                </a>
+                <Hint label={summary.source_title}>
+                  <a
+                    href={summary.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 transition-colors hover:text-foreground"
+                  >
+                    {host}
+                    <ArrowUpRightIcon className="size-3" />
+                  </a>
+                </Hint>
               ) : (
                 // No URL kept: the site, but nothing to open
-                <span title={summary.source_title ?? undefined}>{host}</span>
+                <Hint label={summary.source_title}>
+                  <span>{host}</span>
+                </Hint>
               )}
             </>
           )}

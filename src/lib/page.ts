@@ -3,6 +3,11 @@ import { maxChars, normalize } from "./bridge/extract";
 import {
   type BridgeRequest,
   type BridgeResponse,
+  type FillOutcome,
+  type FillReport,
+  type FormAnswer,
+  formFillPortName,
+  formPickerPortName,
   type PickedContent,
   type PickerCommand,
   type PickerPanelMessage,
@@ -10,6 +15,7 @@ import {
   type ProbeResponse,
   pickerPortName,
   type ReadPdfResponse,
+  type ScannedForm,
 } from "./messages";
 import {
   extractPdf,
@@ -200,11 +206,36 @@ export async function pickElement(
   signal: AbortSignal,
   onReady: (send: (command: PickerCommand) => void) => void,
 ) {
+  const content = await openPicker(
+    pickerPortName,
+    signal,
+    onReady,
+    (message) => (message.type === "selected" ? message.content : null),
+  );
+  return content && assertReadable(content);
+}
+
+/** The same picker for "fill": resolves with the fields of the pick */
+export function pickForm(
+  signal: AbortSignal,
+  onReady: (send: (command: PickerCommand) => void) => void,
+) {
+  return openPicker(formPickerPortName, signal, onReady, (message) =>
+    message.type === "form" ? message.form : null,
+  );
+}
+
+async function openPicker<T>(
+  portName: string,
+  signal: AbortSignal,
+  onReady: (send: (command: PickerCommand) => void) => void,
+  read: (message: PickerPortMessage) => T | null,
+) {
   const tabId = await activeTabId();
   await injectBridge(tabId);
 
-  return new Promise<PickedContent | null>((resolve, reject) => {
-    const port = browser.tabs.connect(tabId, { name: pickerPortName });
+  return new Promise<T | null>((resolve) => {
+    const port = browser.tabs.connect(tabId, { name: portName });
     let settled = false;
     onReady((command) => {
       if (!settled) {
@@ -217,15 +248,7 @@ export async function pickElement(
 
     port.onMessage.addListener((message: PickerPortMessage) => {
       settled = true;
-      if (message.type === "cancelled") {
-        resolve(null);
-        return;
-      }
-      try {
-        resolve(assertReadable(message.content));
-      } catch (error) {
-        reject(error);
-      }
+      resolve(message.type === "cancelled" ? null : read(message));
     });
     // The page navigated away or the tab closed mid-pick
     port.onDisconnect.addListener(() => {
@@ -237,4 +260,66 @@ export async function pickElement(
       resolve(null);
     });
   });
+}
+
+/** "Use the whole page" for fill: every field on the active tab */
+export async function scanPageForm(): Promise<ScannedForm> {
+  const tabId = await activeTabId();
+  await injectBridge(tabId);
+  return browser.tabs.sendMessage(tabId, {
+    type: "scan-form",
+  } satisfies BridgeRequest);
+}
+
+/** The tab a fill is about: the answers go back to it, whatever is active */
+export function currentTabId() {
+  return activeTabId();
+}
+
+/**
+ * A streamed fill on one tab: the events go to the page in order (each waits
+ * for the one before), and closing the session without a finish (the panel
+ * closing, a cancel) makes the page stop and tidy up
+ */
+export async function openFillSession(tabId: number) {
+  const port = browser.tabs.connect(tabId, { name: formFillPortName });
+  let chain: Promise<unknown> = Promise.resolve();
+  let closed = false;
+  const send = <T>(request: BridgeRequest): Promise<T> => {
+    const run = chain.then(() =>
+      closed ? undefined : browser.tabs.sendMessage(tabId, request),
+    );
+    chain = run.catch(() => {});
+    return run as Promise<T>;
+  };
+  await send({ type: "fill-begin" });
+  return {
+    delta: (id: string, text: string) =>
+      send<boolean>({ type: "fill-delta", id, text }),
+    answer: (answer: FormAnswer) =>
+      send<FillOutcome>({ type: "fill-answer", answer }),
+    finish: async (answers: FormAnswer[]) => {
+      const report = await send<FillReport>({ type: "fill-finish", answers });
+      closed = true;
+      port.disconnect();
+      return report;
+    },
+    /** Stops: nothing more reaches the page */
+    abort: async () => {
+      await send({ type: "fill-abort" });
+      closed = true;
+      port.disconnect();
+    },
+  };
+}
+
+export type FillSession = Awaited<ReturnType<typeof openFillSession>>;
+
+export async function undoPageFill(tabId: number): Promise<{
+  restored: number;
+  kept: number;
+}> {
+  return browser.tabs.sendMessage(tabId, {
+    type: "undo-fill",
+  } satisfies BridgeRequest);
 }

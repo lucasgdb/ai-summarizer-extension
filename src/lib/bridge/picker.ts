@@ -5,6 +5,11 @@ import { describe } from "./extract";
 type Handlers = {
   onPick: (element: HTMLElement) => void;
   onCancel: () => void;
+  /**
+   * What hovering an element really points at: for "fill", the whole form
+   * around it rather than the label or button under the mouse
+   */
+  snap?: (element: HTMLElement) => HTMLElement;
 };
 
 const accent = "#2563eb";
@@ -61,7 +66,7 @@ export const keyCommands: Partial<Record<string, PickerCommand>> = {
   Escape: "cancel",
 };
 
-export function startPicker({ onPick, onCancel }: Handlers) {
+export function startPicker({ onPick, onCancel, snap }: Handlers) {
   const host = document.createElement("ai-summarizer-picker");
   host.style.cssText =
     "position:fixed;inset:0;z-index:2147483647;pointer-events:none;";
@@ -121,9 +126,16 @@ export function startPicker({ onPick, onCancel }: Handlers) {
     draw();
   }
 
+  /** The element under the pointer, snapped (see Handlers.snap) */
+  function pointedAt(x: number, y: number) {
+    const target = document.elementFromPoint(x, y);
+    if (!(target instanceof HTMLElement)) return null;
+    return snap ? snap(target) : target;
+  }
+
   function onPointerMove(event: PointerEvent) {
-    const target = document.elementFromPoint(event.clientX, event.clientY);
-    if (target instanceof HTMLElement && target !== current) {
+    const target = pointedAt(event.clientX, event.clientY);
+    if (target && target !== current && !trail.includes(target)) {
       trail = [];
       highlight(target);
     }
@@ -132,8 +144,10 @@ export function startPicker({ onPick, onCancel }: Handlers) {
   function onClick(event: MouseEvent) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (current) {
-      const picked = current;
+    // A click with no move before it (the panel had the focus) still picks
+    // what's under the pointer
+    const picked = current ?? pointedAt(event.clientX, event.clientY);
+    if (picked) {
       stop();
       onPick(picked);
     }

@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { authApiUrl } from "@/lib/api";
 import { AuthError, type AuthErrorReason, signInWithGoogle } from "@/lib/auth";
+import { useUiMode } from "@/lib/ui-mode-context";
 import { useDictionary } from "@/lib/use-locale";
 import { GoogleIcon } from "./google-icon";
 
 export function SignIn() {
   const dict = useDictionary();
+  const mode = useUiMode();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<AuthErrorReason | null>(null);
 
@@ -16,7 +18,7 @@ export function SignIn() {
     setError(null);
     try {
       // On success the session store re-renders the app signed in
-      await signInWithGoogle();
+      await signInWithGoogle(mode);
     } catch (error) {
       console.error(error);
       setError(error instanceof AuthError ? error.reason : "failed");

@@ -266,6 +266,11 @@ const en = {
     backToSelection: "Back to the selection",
   },
 
+  /** The footer switch: what it switches to (the icon opens it from then on) */
+  mode: {
+    popup: "Open as a popup from the toolbar icon",
+    sidepanel: "Open in the side panel",
+  },
   signIn: {
     body: "Sign in to start summarizing.",
     google: "Continue with Google",
@@ -292,8 +297,143 @@ const en = {
   nav: {
     label: "Main",
     summarize: "summarize",
+    fill: "fill forms",
     history: "history",
+    /** A narrow panel's label, where the full one would overflow the header */
+    short: { fill: "fill forms" } as Partial<Record<string, string>>,
     credits: "credits",
+  },
+  audio: {
+    open: "Listen",
+    generate: "Generate audio",
+    generating: "Generating audio…",
+    failed: "Couldn't generate the audio.",
+    priceChanged: (price: string) =>
+      `The price changed to ${price}. Nothing was charged: generate again to confirm.`,
+    insufficient: (price: string, balance: string) =>
+      `The audio costs ${price} and your balance is ${balance}.`,
+    gone: "This summary (or translation) no longer exists.",
+    player: "Summary audio",
+    busy: "Wait: the audio is being generated.",
+    unavailable: {
+      language: "Audio isn't available in this language yet.",
+      "too-long": "This summary is too long to read aloud.",
+      "no-text": "This summary has no text to read aloud.",
+      other: "Audio isn't available for this summary.",
+    } as Record<string, string>,
+    export: "Export audio (MP3)",
+    exportDenied: "Allow downloads to save the audio.",
+    exportFailed: "Couldn't export the audio. Try again.",
+    speed: "Speed",
+    close: "Close the player",
+    play: "Play",
+    pause: "Pause",
+    seek: "Position",
+    back: (seconds: number) => `Back ${seconds} seconds`,
+    forward: (seconds: number) => `Forward ${seconds} seconds`,
+  },
+  video: {
+    open: "Watch video",
+    generate: "Generate video",
+    generating: "Generating video… (it can take a few minutes)",
+    failed: "Couldn't generate the video.",
+    priceChanged: (price: string) =>
+      `The price changed to ${price}. Nothing was charged: generate again to confirm.`,
+    insufficient: (price: string, balance: string) =>
+      `The video costs ${price} and your balance is ${balance}.`,
+    gone: "This summary (or translation) no longer exists.",
+    unavailable: {
+      language: "Video isn't available in this language yet.",
+      "too-long": "This summary is too long for a video.",
+      "no-text": "This summary has no text for a video.",
+      other: "Video isn't available for this summary.",
+    } as Record<string, string>,
+    player: "Summary video",
+    close: "Close the video",
+    loadFailed: "Couldn't load the video. Close it and try again.",
+    export: "Download video (MP4)",
+    exportDenied: "Allow downloads to save the video.",
+    exportFailed: "Couldn't download the video. Try again.",
+  },
+  fill: {
+    heroTitle: "Answer forms your way.",
+    heroBody:
+      "Pick a form and say how you want to answer it. The AI fills the fields from what you tell it; you review and send.",
+    pickForm: "Select a form",
+    wholePage: "Use the whole page",
+    scanning: "Reading the fields…",
+    form: "Form",
+    fields: (n: number, formatted: string) =>
+      `${formatted} ${n === 1 ? "field" : "fields"}`,
+    required: (_n: number, formatted: string) => `${formatted} required`,
+    alreadyFilled: (formatted: string) => `${formatted} already answered`,
+    sensitive: (n: number, formatted: string) =>
+      `${formatted} sensitive ${n === 1 ? "field (password, card…) is" : "fields (passwords, cards…) are"} left out.`,
+    unsupported: (n: number, formatted: string) =>
+      `${formatted} ${n === 1 ? "field can't" : "fields can't"} be filled automatically.`,
+    truncated: (max: string) => `Only the first ${max} fields are included.`,
+    fieldsTitle: "Fields",
+    noFieldsTitle: "No fields here",
+    noFieldsBody:
+      "Select the block that holds the questions, or use the whole page.",
+    context: "How to answer",
+    contextRequired: "Say how to answer: the answers come from here.",
+    contextPlaceholder:
+      "e.g. I've been a customer for 2 years, I like the support, but the app freezes when I upload photos. I'd give it a 7.",
+    contextHint:
+      "The answers come from here. Personal details you don't write stay blank.",
+    tone: "Tone",
+    tones: {
+      formal: "Formal",
+      neutral: "Neutral",
+      friendly: "Friendly",
+      direct: "Direct",
+    } as Record<string, string>,
+    answerLength: "Answer length",
+    answerLengths: {
+      short: "Short",
+      medium: "Medium",
+      long: "Detailed",
+    } as Record<string, string>,
+    language: "Answer language",
+    languageAuto: "The form's",
+    onlyEmpty: "Only empty fields",
+    onlyEmptyHint: "Answered fields aren't sent or changed.",
+    fill: "Fill",
+    filling: "Filling…",
+    progress: (done: string, total: string) => `${done} of ${total}`,
+    cancelled:
+      "Cancelled: nothing more is filled. The credits for this one stay charged.",
+    interrupted:
+      "The connection dropped. The answers that arrived stay on the page.",
+    incomplete:
+      "The AI stopped partway. The answers that arrived stay on the page, and the credits stay charged.",
+    nothingToFill: "Every field already has an answer.",
+    insufficient: (price: string, balance: string) =>
+      `Filling this form costs ${price} and your balance is ${balance}.`,
+    priceChanged: (price: string) =>
+      `The price changed to ${price}. Nothing was charged: fill again to confirm.`,
+    failed: "Couldn't fill the form.",
+    doneTitle: "Form filled",
+    stoppedTitle: "The fill stopped partway",
+    doneBody:
+      "Review it on the page before sending: nothing is sent automatically.",
+    outcomes: {
+      filled: "filled",
+      skipped: "left blank",
+      unchanged: "already like this",
+      failed: "couldn't be filled",
+    } as Record<string, string>,
+    checked: "Checked",
+    unchecked: "Unchecked",
+    undo: "Undo",
+    undone: (n: number, formatted: string) =>
+      `Undone: ${formatted} ${n === 1 ? "field is" : "fields are"} back as before. Change what you want and fill again.`,
+    radiosKept:
+      "Choices that had nothing picked before stay picked (a radio can't go back to empty).",
+    again: "Fill another",
+    pageChanged:
+      "The page was reloaded or changed since it was read. Select the form again.",
   },
   buy: {
     title: "Buy credits",
@@ -374,10 +514,7 @@ const en = {
       medium: "Balanced",
       high: "Thorough (slower)",
     } as Record<string, string>,
-    effortHighHint: (models: string) =>
-      models
-        ? `Slower and pricier, especially with ${models}.`
-        : "Slower and pricier.",
+    effortHighHint: "Slower and pricier.",
     invalidChoice: "Choose one of the options.",
     instructionsTooLong: (max: string) => `Up to ${max} characters.`,
   },
@@ -399,6 +536,9 @@ const en = {
       translation: "Translation",
       purchase: "Credit purchase",
       purchase_reversal: "Purchase reversed",
+      form_fill: "Form fill",
+      audio: "Summary audio",
+      video: "Summary video",
     } as Record<string, string>,
     deletedSummary: "deleted summary",
     balanceAfter: (formatted: string) => `balance ${formatted}`,
@@ -624,6 +764,10 @@ const ptBr: Dictionary = {
     backToSelection: "Voltar à seleção",
   },
 
+  mode: {
+    popup: "Abrir como popup no ícone da barra",
+    sidepanel: "Abrir no painel lateral",
+  },
   signIn: {
     body: "Entre para começar a resumir.",
     google: "Continuar com o Google",
@@ -651,8 +795,137 @@ const ptBr: Dictionary = {
   nav: {
     label: "Principal",
     summarize: "resumir",
+    fill: "preencher formulários",
     history: "histórico",
     credits: "créditos",
+    short: { fill: "preencher" },
+  },
+  audio: {
+    open: "Ouvir",
+    generate: "Gerar áudio",
+    generating: "Gerando áudio…",
+    failed: "Não foi possível gerar o áudio.",
+    priceChanged: (price) =>
+      `O preço mudou para ${price}. Nada foi cobrado: gere de novo para confirmar.`,
+    insufficient: (price, balance) =>
+      `O áudio custa ${price} e seu saldo é ${balance}.`,
+    gone: "Este resumo (ou tradução) não existe mais.",
+    player: "Áudio do resumo",
+    busy: "Aguarde: o áudio está sendo gerado.",
+    unavailable: {
+      language: "O áudio ainda não está disponível neste idioma.",
+      "too-long": "Este resumo é longo demais para ser lido em voz alta.",
+      "no-text": "Este resumo não tem texto para ler em voz alta.",
+      other: "O áudio não está disponível para este resumo.",
+    },
+    export: "Exportar áudio (MP3)",
+    exportDenied: "Permita os downloads para salvar o áudio.",
+    exportFailed: "Não foi possível exportar o áudio. Tente de novo.",
+    speed: "Velocidade",
+    close: "Fechar o player",
+    play: "Tocar",
+    pause: "Pausar",
+    seek: "Posição",
+    back: (seconds) => `Voltar ${seconds} segundos`,
+    forward: (seconds) => `Avançar ${seconds} segundos`,
+  },
+  video: {
+    open: "Assistir vídeo",
+    generate: "Gerar vídeo",
+    generating: "Gerando vídeo… (pode levar alguns minutos)",
+    failed: "Não foi possível gerar o vídeo.",
+    priceChanged: (price) =>
+      `O preço mudou para ${price}. Nada foi cobrado: gere de novo para confirmar.`,
+    insufficient: (price, balance) =>
+      `O vídeo custa ${price} e seu saldo é ${balance}.`,
+    gone: "Este resumo (ou tradução) não existe mais.",
+    unavailable: {
+      language: "O vídeo ainda não está disponível neste idioma.",
+      "too-long": "Este resumo é longo demais para um vídeo.",
+      "no-text": "Este resumo não tem texto para um vídeo.",
+      other: "O vídeo não está disponível para este resumo.",
+    },
+    player: "Vídeo do resumo",
+    close: "Fechar o vídeo",
+    loadFailed: "Não foi possível carregar o vídeo. Feche e tente de novo.",
+    export: "Baixar vídeo (MP4)",
+    exportDenied: "Permita os downloads para salvar o vídeo.",
+    exportFailed: "Não foi possível baixar o vídeo. Tente de novo.",
+  },
+  fill: {
+    heroTitle: "Responda formulários do seu jeito.",
+    heroBody:
+      "Escolha o formulário e diga como quer respondê-lo. A IA preenche os campos com o que você contar; você revisa e envia.",
+    pickForm: "Selecionar formulário",
+    wholePage: "Usar a página inteira",
+    scanning: "Lendo os campos…",
+    form: "Formulário",
+    fields: (n, formatted) => `${formatted} ${n === 1 ? "campo" : "campos"}`,
+    required: (n, formatted) =>
+      `${formatted} ${n === 1 ? "obrigatório" : "obrigatórios"}`,
+    alreadyFilled: (formatted) => `${formatted} já respondidos`,
+    sensitive: (n, formatted) =>
+      `${formatted} ${n === 1 ? "campo sensível (senha, cartão…) fica" : "campos sensíveis (senhas, cartões…) ficam"} de fora.`,
+    unsupported: (n, formatted) =>
+      `${formatted} ${n === 1 ? "campo não pode" : "campos não podem"} ser preenchidos automaticamente.`,
+    truncated: (max) => `Só os primeiros ${max} campos entram.`,
+    fieldsTitle: "Campos",
+    noFieldsTitle: "Nenhum campo aqui",
+    noFieldsBody:
+      "Selecione o bloco que tem as perguntas, ou use a página inteira.",
+    context: "Como responder",
+    contextRequired: "Diga como quer responder: é daqui que vêm as respostas.",
+    contextPlaceholder:
+      "Ex.: sou cliente há 2 anos, gosto do suporte, mas o app trava ao enviar fotos. Daria nota 7.",
+    contextHint:
+      "As respostas saem daqui. Dados pessoais que você não escrever ficam em branco.",
+    tone: "Tom",
+    tones: {
+      formal: "Formal",
+      neutral: "Neutro",
+      friendly: "Amigável",
+      direct: "Direto",
+    },
+    answerLength: "Tamanho das respostas",
+    answerLengths: { short: "Curtas", medium: "Médias", long: "Detalhadas" },
+    language: "Idioma das respostas",
+    languageAuto: "O do formulário",
+    onlyEmpty: "Só campos vazios",
+    onlyEmptyHint: "Os campos já respondidos não são enviados nem alterados.",
+    fill: "Preencher",
+    filling: "Preenchendo…",
+    progress: (done, total) => `${done} de ${total}`,
+    cancelled:
+      "Cancelado: nada mais é preenchido. Os créditos desta vez continuam cobrados.",
+    interrupted: "A conexão caiu. As respostas que chegaram ficam na página.",
+    incomplete:
+      "A IA parou no meio. As respostas que chegaram ficam na página, e os créditos continuam cobrados.",
+    nothingToFill: "Todos os campos já têm resposta.",
+    insufficient: (price, balance) =>
+      `Preencher este formulário custa ${price} e seu saldo é ${balance}.`,
+    priceChanged: (price) =>
+      `O preço mudou para ${price}. Nada foi cobrado: preencha de novo para confirmar.`,
+    failed: "Não foi possível preencher o formulário.",
+    doneTitle: "Formulário preenchido",
+    stoppedTitle: "O preenchimento parou no meio",
+    doneBody:
+      "Revise na página antes de enviar: nada é enviado automaticamente.",
+    outcomes: {
+      filled: "preenchido",
+      skipped: "em branco",
+      unchanged: "já estava assim",
+      failed: "não deu para preencher",
+    },
+    checked: "Marcado",
+    unchecked: "Desmarcado",
+    undo: "Desfazer",
+    undone: (n, formatted) =>
+      `Desfeito: ${formatted} ${n === 1 ? "campo voltou" : "campos voltaram"} ao que era. Mude o que quiser e preencha de novo.`,
+    radiosKept:
+      "Escolhas que não tinham opção marcada antes continuam marcadas (um rádio não volta a ficar vazio).",
+    again: "Preencher outro",
+    pageChanged:
+      "A página foi recarregada ou mudou desde a leitura. Selecione o formulário de novo.",
   },
   buy: {
     title: "Comprar créditos",
@@ -721,10 +994,7 @@ const ptBr: Dictionary = {
       medium: "Equilibrado",
       high: "Profundo (mais lento)",
     },
-    effortHighHint: (models) =>
-      models
-        ? `Mais lento e mais caro, sobretudo com ${models}.`
-        : "Mais lento e mais caro.",
+    effortHighHint: "Mais lento e mais caro.",
     invalidChoice: "Escolha uma das opções.",
     instructionsTooLong: (max) => `Até ${max} caracteres.`,
   },
@@ -745,6 +1015,9 @@ const ptBr: Dictionary = {
       translation: "Tradução",
       purchase: "Compra de créditos",
       purchase_reversal: "Compra estornada",
+      form_fill: "Preenchimento de formulário",
+      audio: "Áudio do resumo",
+      video: "Vídeo do resumo",
     },
     deletedSummary: "resumo excluído",
     balanceAfter: (formatted) => `saldo ${formatted}`,

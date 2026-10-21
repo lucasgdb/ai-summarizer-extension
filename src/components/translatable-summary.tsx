@@ -1,6 +1,8 @@
 import { LanguagesIcon, XIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
+import { BlockedReason } from "@/components/blocked-reason";
 import { DeleteButton } from "@/components/delete-button";
+import { MediaControl } from "@/components/summary-media";
 import { type SummaryShape, SummaryView } from "@/components/summary-view";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { ToggleChip } from "@/components/toggle-chip";
@@ -12,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAudioGenerating } from "@/lib/audio-busy";
 import type { Session } from "@/lib/auth";
 import { useBuyCredits } from "@/lib/buy-credits";
 import { insufficientMessage } from "@/lib/credits-messages";
@@ -37,11 +40,7 @@ import {
   useTranslation,
   useTranslationQuote,
 } from "@/lib/queries";
-import {
-  type SummaryRecord,
-  type Translation,
-  uiLanguage,
-} from "@/lib/summaries";
+import type { SummaryRecord, Translation } from "@/lib/summaries";
 import { useLocale } from "@/lib/use-locale";
 
 function asShape(
@@ -229,6 +228,24 @@ export function TranslatableSummary({
         actions={actions}
       />
 
+      {/* The version on screen as audio and as video, side by side, once
+          its text is here (not while a translation is still being written).
+          A player takes the whole row */}
+      {!draft && view.content !== "" && (
+        <div className="flex flex-wrap items-start gap-2">
+          {(["audio", "video"] as const).map((kind) => (
+            <MediaControl
+              key={`${kind}:${summary.id}:${shown}`}
+              kind={kind}
+              session={session}
+              summaryId={summary.id}
+              language={shown === summary.language ? undefined : shown}
+              title={view.title}
+            />
+          ))}
+        </div>
+      )}
+
       {targets.length > 0 && (
         <TranslateControl
           session={session}
@@ -254,6 +271,9 @@ export function TranslatableSummary({
   );
 }
 
+/** On top of "Translate to…", in this order, whatever the UI language */
+const priorityLanguages = ["en", "pt"];
+
 /**
  * One language picker and one priced button: with ten languages, a button
  * each would mean ten quotes (and requests) just to show the screen
@@ -274,26 +294,34 @@ function TranslateControl({
   const locale = useLocale();
   const dict = getDictionary(locale);
   const id = useId();
-  const options = [...targets].sort((a, b) =>
-    languageLabel(locale, a).localeCompare(
-      languageLabel(locale, b),
-      localeConfig[locale].intl,
-    ),
+  // English and Portuguese first (the ones most asked for), then the rest
+  // by the name shown, in the UI's language
+  const rank = (language: string) => {
+    const index = priorityLanguages.indexOf(language);
+    return index === -1 ? Number.POSITIVE_INFINITY : index;
+  };
+  const options = [...targets].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      languageLabel(locale, a).localeCompare(
+        languageLabel(locale, b),
+        localeConfig[locale].intl,
+      ),
   );
   const [picked, setPicked] = useState<string | null>(null);
-  // The UI's language when the summary isn't in it, else the first; and a
-  // pick that's just been translated (so no longer a target) falls back too
-  const fallback = targets.includes(uiLanguage(locale))
-    ? uiLanguage(locale)
-    : (options[0] ?? "");
+  // The first of the list; and a pick that's just been translated (so no
+  // longer a target) falls back to the new first
+  const fallback = options[0] ?? "";
   const target = picked && targets.includes(picked) ? picked : fallback;
+  // One paid action at a time: not while an audio is being generated
+  const generating = useAudioGenerating();
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label htmlFor={`${id}-target`} className="sr-only">
         {dict.translate.target}
       </label>
-      <Select value={target} onValueChange={setPicked}>
+      <Select value={target} onValueChange={setPicked} disabled={generating}>
         <SelectTrigger id={`${id}-target`} size="sm" className="min-w-40">
           {/* One group on the left: justify-between would float the language
               alone in the middle of the trigger */}
@@ -316,6 +344,7 @@ function TranslateControl({
         session={session}
         summaryId={summaryId}
         language={target}
+        blocked={generating}
         onTranslate={(price) => onTranslate(target, price)}
         onOpen={() => onOpen(target)}
       />
@@ -327,12 +356,15 @@ function TranslateButton({
   session,
   summaryId,
   language,
+  blocked = false,
   onTranslate,
   onOpen,
 }: {
   session: Session;
   summaryId: string;
   language: string;
+  /** Another paid action is running (an audio being generated) */
+  blocked?: boolean;
   onTranslate: (price: number) => void;
   /** It exists already (the quote says so): just switch to it */
   onOpen: () => void;
@@ -349,41 +381,44 @@ function TranslateButton({
       (price !== undefined && balance !== undefined && balance < price));
   const name = languageLabel(locale, language);
   const buyCredits = useBuyCredits();
+  // Why it's disabled, when there's something to say
+  const reason = blocked
+    ? dict.audio.busy
+    : insufficient && price !== undefined && balance !== undefined
+      ? insufficientMessage(dict, locale, price, balance)
+      : null;
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={quote.isPending || insufficient}
-        title={
-          insufficient && price !== undefined && balance !== undefined
-            ? insufficientMessage(dict, locale, price, balance)
-            : undefined
-        }
-        onClick={() => {
-          if (cached) onOpen();
-          else if (price !== undefined) onTranslate(price);
-        }}
-      >
-        {/* The picker names the language; already translated: free to open.
+      <BlockedReason reason={reason}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={blocked || quote.isPending || insufficient}
+          onClick={() => {
+            if (cached) onOpen();
+            else if (price !== undefined) onTranslate(price);
+          }}
+        >
+          {/* The picker names the language; already translated: free to open.
           No spinner: it would push the label around while the price loads */}
-        {cached ? dict.translate.open(name) : dict.translate.translate}
-        {!cached && (
-          <span className="font-normal text-muted-foreground">
-            ·{" "}
-            {price === undefined ? (
-              // Only the number comes from the API: "· ▭ credits"
-              <>
-                <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
-                {dict.credits.unit}
-              </>
-            ) : (
-              formatCredits(locale, price)
-            )}
-          </span>
-        )}
-      </Button>
+          {cached ? dict.translate.open(name) : dict.translate.translate}
+          {!cached && (
+            <span className="font-normal text-muted-foreground">
+              ·{" "}
+              {price === undefined ? (
+                // Only the number comes from the API: "· ▭ credits"
+                <>
+                  <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
+                  {dict.credits.unit}
+                </>
+              ) : (
+                formatCredits(locale, price)
+              )}
+            </span>
+          )}
+        </Button>
+      </BlockedReason>
       {insufficient && buyCredits && (
         <Button variant="ghost" size="sm" onClick={buyCredits}>
           {dict.buy.open}

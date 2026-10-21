@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { type ReactNode, useId, useState } from "react";
+import { BlockedReason } from "@/components/blocked-reason";
 import { Notice } from "@/components/notice";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { Button } from "@/components/ui/button";
@@ -26,16 +27,12 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { useAudioGenerating } from "@/lib/audio-busy";
 import type { Session } from "@/lib/auth";
 import { useBuyCredits } from "@/lib/buy-credits";
 import { insufficientMessage } from "@/lib/credits-messages";
 import { type GenerationForm, generationSchema } from "@/lib/generation-schema";
-import {
-  formatCredits,
-  formatList,
-  getDictionary,
-  languageLabel,
-} from "@/lib/i18n";
+import { formatCredits, getDictionary, languageLabel } from "@/lib/i18n";
 import type { PickedContent } from "@/lib/messages";
 import { resolveGeneration } from "@/lib/preferences";
 import { useBalance, useOptions, useQuote } from "@/lib/queries";
@@ -97,12 +94,13 @@ function PricedForm({
   const id = useId();
   const [open, setOpen] = useState(false);
   const buyCredits = useBuyCredits();
+  // One paid action at a time: not while an audio is being generated
+  const generating = useAudioGenerating();
 
   const saved = resolveGeneration(usePreferences(), options, locale);
   const form = useForm({
     defaultValues: {
       // "" = no choice: resolveGeneration turns it into the API's default
-      model: saved.model ?? "",
       style: saved.style ?? "",
       length: saved.length ?? "",
       effort: saved.effort ?? "",
@@ -128,7 +126,7 @@ function PricedForm({
   // Typing preferences re-quotes once the user pauses, not on every key
   const instructions = useDebouncedValue(values.instructions, 500);
   const generation = resolveGeneration(
-    { ...values, model: values.model || undefined, instructions },
+    { ...values, instructions },
     options,
     locale,
   );
@@ -144,14 +142,6 @@ function PricedForm({
   // A price is on its way (not failed, not skipped for an invalid form)
   const pricing = price === undefined && valid && !quote.isError;
 
-  const model = options?.models.find((model) => model.id === generation.model);
-  // Product names from the database: the ones above the default model
-  const slowModels = formatList(
-    locale,
-    (options?.models ?? [])
-      .filter((option) => !option.default)
-      .map((option) => option.name),
-  );
   const styleLabel = (style: string) =>
     dict.options.styles[style]?.label ?? style;
   const lengthLabel = (length: string) =>
@@ -159,7 +149,6 @@ function PricedForm({
   const effortLabel = (effort: string) =>
     dict.options.efforts[effort] ?? effort;
   const summary = [
-    model?.name,
     generation.style && styleLabel(generation.style),
     generation.length && lengthLabel(generation.length),
     generation.effort && effortLabel(generation.effort),
@@ -179,7 +168,9 @@ function PricedForm({
         event.preventDefault();
         // Validates and marks every field touched, so errors show up
         await form.handleSubmit();
-        if (form.state.isValid && ready) onSummarize(price, generation);
+        if (form.state.isValid && ready && !generating) {
+          onSummarize(price, generation);
+        }
       }}
     >
       {(options || optionsPending) && (
@@ -223,25 +214,6 @@ function PricedForm({
                 className="overflow-hidden"
               >
                 <FieldGroup id={`${id}-options`} className="border-t p-4">
-                  <form.Field name="model">
-                    {(field) => (
-                      <ChoiceField
-                        id={`${id}-model`}
-                        label={dict.options.model}
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                        errors={field.state.meta.errors}
-                        selected={model?.name}
-                        choices={options.models.map((option) => ({
-                          value: option.id,
-                          label: option.name,
-                          // From the database, in English: product copy
-                          hint: option.description,
-                        }))}
-                      />
-                    )}
-                  </form.Field>
-
                   <form.Field name="style">
                     {(field) => (
                       <ChoiceField
@@ -324,7 +296,7 @@ function PricedForm({
                   into a tall block */}
                   {values.effort === "high" && (
                     <FieldDescription className="-mt-2">
-                      {dict.options.effortHighHint(slowModels)}
+                      {dict.options.effortHighHint}
                     </FieldDescription>
                   )}
 
@@ -419,27 +391,32 @@ function PricedForm({
       )}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={!ready}>
-            {quote.isFetching && (price === undefined || stale) ? (
-              <Spinner aria-label={dict.loading} />
-            ) : (
-              <SparklesIcon data-icon="inline-start" />
-            )}
-            {dict.summarize}
-            {/* "Summarize" is ours; the price is the API's */}
-            {(price !== undefined || pricing) && (
-              <span
-                className={cn("font-normal opacity-70", stale && "opacity-40")}
-              >
-                ·{" "}
-                {price === undefined ? (
-                  <TextSkeleton className="w-14 bg-current opacity-30" />
-                ) : (
-                  formatCredits(locale, price)
-                )}
-              </span>
-            )}
-          </Button>
+          <BlockedReason reason={generating ? dict.audio.busy : null}>
+            <Button type="submit" disabled={!ready || generating}>
+              {quote.isFetching && (price === undefined || stale) ? (
+                <Spinner aria-label={dict.loading} />
+              ) : (
+                <SparklesIcon data-icon="inline-start" />
+              )}
+              {dict.summarize}
+              {/* "Summarize" is ours; the price is the API's */}
+              {(price !== undefined || pricing) && (
+                <span
+                  className={cn(
+                    "font-normal opacity-70",
+                    stale && "opacity-40",
+                  )}
+                >
+                  ·{" "}
+                  {price === undefined ? (
+                    <TextSkeleton className="w-14 bg-current opacity-30" />
+                  ) : (
+                    formatCredits(locale, price)
+                  )}
+                </span>
+              )}
+            </Button>
+          </BlockedReason>
           {onReselect && (
             <Button type="button" variant="ghost" onClick={onReselect}>
               {dict.reselect}

@@ -1,3 +1,4 @@
+import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { getDictionary, localeConfig, otherLocale } from "@/lib/i18n";
 import { setLocale, useLocale } from "@/lib/use-locale";
@@ -9,16 +10,17 @@ export function LanguageSwitch() {
   const description = getDictionary(target).languageSwitch;
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      lang={htmlLang}
-      aria-label={description}
-      title={description}
-      className="text-xs text-muted-foreground"
-      onClick={() => setLocale(target)}
-    >
-      {label}
-    </Button>
+    <Hint label={description}>
+      <Button
+        variant="ghost"
+        size="icon"
+        lang={htmlLang}
+        aria-label={description}
+        className="text-xs text-muted-foreground"
+        onClick={() => setLocale(target)}
+      >
+        {label}
+      </Button>
+    </Hint>
   );
 }

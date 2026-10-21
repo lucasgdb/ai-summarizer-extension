@@ -13,6 +13,7 @@ import { Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { browser } from "#imports";
 import { AccountMenu } from "@/components/account-menu";
 import { BackButton } from "@/components/back-button";
+import { FillSection } from "@/components/fill/fill-section";
 import { emptyFilter, type FilterState } from "@/components/history/filters";
 import { LanguageSwitch } from "@/components/language-switch";
 import {
@@ -26,6 +27,7 @@ import {
   preloadSections,
   SummarizeForm,
 } from "@/components/lazy-sections";
+import { ModeSwitch } from "@/components/mode-switch";
 import { Notice } from "@/components/notice";
 import { PageCard } from "@/components/page-card";
 import { PickingHint } from "@/components/picking-hint";
@@ -42,12 +44,7 @@ import { apiUrl } from "@/lib/api";
 import { refreshUser, type Session } from "@/lib/auth";
 import { keyCommands } from "@/lib/bridge/picker";
 import { BuyCreditsContext } from "@/lib/buy-credits";
-import {
-  formatNumber,
-  getDictionary,
-  type Locale,
-  localeConfig,
-} from "@/lib/i18n";
+import { formatNumber, getDictionary, localeConfig } from "@/lib/i18n";
 import type { PickedContent, PickerCommand } from "@/lib/messages";
 import {
   detectPdf,
@@ -63,6 +60,7 @@ import {
   requestAccess,
 } from "@/lib/page";
 import type { PdfDocument } from "@/lib/pdf";
+import { portfolioPage } from "@/lib/portfolio";
 import {
   queryClient,
   refreshAfterFailure,
@@ -80,6 +78,12 @@ import {
   streamSummary,
 } from "@/lib/summaries";
 import { syncThemeAcrossPages } from "@/lib/theme";
+import {
+  continueInPanel,
+  type PanelIntent,
+  watchPanelIntents,
+} from "@/lib/ui-mode";
+import { useUiMode } from "@/lib/ui-mode-context";
 import { useDictionary, useLocale } from "@/lib/use-locale";
 import { useSession } from "@/lib/use-session";
 import { cn } from "@/lib/utils";
@@ -87,9 +91,10 @@ import { cn } from "@/lib/utils";
 type Source = "element" | "page" | "pdf";
 
 // "buy" isn't in the nav: it opens from the credits (and wherever they run short)
-type Section = "summarize" | "history" | "credits" | "buy";
+type Section = "summarize" | "fill" | "history" | "credits" | "buy";
 const navSections = [
   "summarize",
+  "fill",
   "history",
   "credits",
 ] as const satisfies Section[];
@@ -135,11 +140,6 @@ type State =
 
 const version = browser.runtime.getManifest().version;
 
-const siteUrl: Record<Locale, string> = {
-  en: "https://lucasbittencourt.dev",
-  "pt-br": "https://lucasbittencourt.dev/pt-br",
-};
-
 export function App() {
   const locale = useLocale();
   const dict = getDictionary(locale);
@@ -150,6 +150,12 @@ export function App() {
   const [buyFrom, setBuyFrom] = useState<Section>("credits");
   const [openSummary, setOpenSummary] = useState<HistoryItem | null>(null);
   const [historyFilter, setHistoryFilter] = useState<FilterState>(emptyFilter);
+  // A pick the popup handed over (it closes on the first click on the page)
+  const [handedPick, setHandedPick] = useState<{
+    intent: PanelIntent;
+    n: number;
+  } | null>(null);
+  const mode = useUiMode();
 
   useEffect(() => {
     document.documentElement.lang = localeConfig[locale].htmlLang;
@@ -167,6 +173,16 @@ export function App() {
     setHistoryFilter(emptyFilter);
     if (!userId) queryClient.clear();
   }, [userId]);
+
+  // In the side panel: the pick the popup asked for, in its section
+  useEffect(() => {
+    if (mode !== "sidepanel") return;
+    return watchPanelIntents((intent) => {
+      setSection(intent === "pick-form" ? "fill" : "summarize");
+      setOpenSummary(null);
+      setHandedPick((last) => ({ intent, n: (last?.n ?? 0) + 1 }));
+    });
+  }, [mode]);
 
   function navigate(next: Section) {
     setSection(next);
@@ -201,10 +217,11 @@ export function App() {
               border does that itself) */}
           {session ? (
             <div className="flex items-center gap-1">
-              {/* Only when the panel is wide enough (~410px for three links,
-                  these two and the pill): narrower, they'd crowd the row, and
-                  the account menu has them anyway, at any width */}
-              <div className="hidden items-center gap-1 min-[26rem]:flex">
+              {/* Only when the panel is wide enough (~540px for four links,
+                  "preencher formulários" the longest, these two and the
+                  pill): narrower, they'd crowd the row, and the account menu
+                  has them anyway, at any width */}
+              <div className="hidden items-center gap-1 min-[34rem]:flex">
                 <LanguageSwitch />
                 <ThemeToggle />
               </div>
@@ -234,7 +251,25 @@ export function App() {
               }
             >
               {/* Keyed by user: signing in as someone else starts from scratch */}
-              <Summarizer key={session.user.id} session={session} />
+              <Summarizer
+                key={session.user.id}
+                session={session}
+                handedPick={
+                  handedPick?.intent === "pick-content" ? handedPick.n : 0
+                }
+              />
+            </div>
+            {/* Same: a form picked and half answered survives a look elsewhere */}
+            <div
+              className={section === "fill" ? "flex flex-1 flex-col" : "hidden"}
+            >
+              <FillSection
+                key={session.user.id}
+                session={session}
+                handedPick={
+                  handedPick?.intent === "pick-form" ? handedPick.n : 0
+                }
+              />
             </div>
             {section === "credits" && (
               <Suspense fallback={<CreditsFallback />}>
@@ -274,16 +309,30 @@ export function App() {
         <a
           className="flex items-center gap-1.5 transition-colors hover:text-foreground"
           // The site in the same language as the panel
-          href={siteUrl[locale]}
+          href={portfolioPage("/", locale)}
           target="_blank"
           rel="noopener noreferrer"
         >
           <ArrowUpRightIcon className="size-3.5" />
           lucasbittencourt.dev
         </a>
-        <span className="tabular-nums">v{version}</span>
+        <div className="-mr-1.5 flex items-center gap-2">
+          <span className="tabular-nums">v{version}</span>
+          <ModeSwitch />
+        </div>
       </footer>
     </div>
+  );
+}
+
+/** The short label below ~430px (the popup is 400px), when there is one */
+function NavLabel({ full, short }: { full: string; short?: string }) {
+  if (!short || short === full) return full;
+  return (
+    <>
+      <span className="min-[27rem]:hidden">{short}</span>
+      <span className="hidden min-[27rem]:inline">{full}</span>
+    </>
   );
 }
 
@@ -300,7 +349,7 @@ function MainNav({
   const current = section === "buy" ? "credits" : section;
 
   return (
-    <nav aria-label={dict.nav.label} className="-ml-2 flex">
+    <nav aria-label={dict.nav.label} className="-ml-1.5 flex">
       {navSections.map((item) => (
         <button
           key={item}
@@ -308,19 +357,27 @@ function MainNav({
           aria-current={current === item ? "page" : undefined}
           onClick={() => onNavigate(item)}
           className={cn(
-            "cursor-pointer rounded-md px-2 py-1 tracking-tight transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
+            "cursor-pointer whitespace-nowrap rounded-md px-1.5 py-1 tracking-tight transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
             current === item ? "text-foreground" : "text-muted-foreground",
           )}
         >
-          {dict.nav[item]}
+          <NavLabel full={dict.nav[item]} short={dict.nav.short[item]} />
         </button>
       ))}
     </nav>
   );
 }
 
-function Summarizer({ session }: { session: Session }) {
+function Summarizer({
+  session,
+  handedPick,
+}: {
+  session: Session;
+  /** Counts the picks handed over by the popup: each new one starts one */
+  handedPick: number;
+}) {
   const locale = useLocale();
+  const mode = useUiMode();
   const [state, setState] = useState<State>({ status: "idle" });
   // One job at a time: picking, reading or summarizing
   const job = useRef<AbortController | null>(null);
@@ -331,6 +388,12 @@ function Summarizer({ session }: { session: Session }) {
     job.current = new AbortController();
     return job.current.signal;
   }
+
+  // A pick the popup handed over: started once the side panel has it
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per hand-off
+  useEffect(() => {
+    if (handedPick) void capture("element");
+  }, [handedPick]);
 
   function reset() {
     job.current?.abort();
@@ -372,6 +435,12 @@ function Summarizer({ session }: { session: Session }) {
   }
 
   async function capture(source: Source) {
+    // The popup would close on the first click on the page: the side panel
+    // picks instead (opened here, while this is still the click)
+    if (source === "element" && mode === "popup") {
+      void continueInPanel("pick-content");
+      return;
+    }
     // A PDF the URL didn't give away ("whole page" on a viewer tab) reads as one
     if (source === "pdf" || (source === "page" && (await detectPdf()))) {
       await capturePdf();
@@ -440,7 +509,8 @@ function Summarizer({ session }: { session: Session }) {
       content: "",
       source_url: content.url || null,
       source_title: content.title || null,
-      model: generation.model ?? "",
+      // Known once it's saved: the API picks the model
+      model: "",
       effort: generation.effort ?? "",
       credits: 0,
       created_at: new Date().toISOString(),

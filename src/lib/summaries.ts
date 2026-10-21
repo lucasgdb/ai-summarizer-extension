@@ -110,8 +110,12 @@ export type HistoryFacets = {
   hosts: Facet[];
 };
 
-/** GET /summaries/options: what the selectors offer (models come from the DB) */
+/** GET /summaries/options: what the selectors offer */
 export type SummaryOptions = {
+  /**
+   * Not a choice anymore: only to name a summary's model in the history
+   * (item.model → name), "deepseek-flash" included when the fallback ran
+   */
   models: { id: string; name: string; description: string; default: boolean }[];
   efforts: string[];
   styles: string[];
@@ -119,7 +123,6 @@ export type SummaryOptions = {
   /** What a summary can be written in ("en", "pt"…) */
   languages: string[];
   defaults: {
-    model: string;
     effort: string;
     style: string;
     length: string;
@@ -130,8 +133,8 @@ export type SummaryOptions = {
 
 /** How the summary is generated; part of the price */
 export type Generation = {
-  // Omitted (no saved choice and no /summaries/options): the API's defaults
-  model?: string;
+  // Omitted (no saved choice and no /summaries/options): the API's defaults.
+  // No model: the API picks it (the cheapest, with a fallback)
   effort?: string;
   style?: string;
   length?: string;

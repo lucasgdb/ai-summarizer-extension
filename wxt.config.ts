@@ -30,6 +30,11 @@ export default defineConfig({
   },
   vite: () => ({
     plugins: [tailwindcss(), babel({ presets: [reactCompilerPreset()] })],
+    define: {
+      // Tells one build's page script from another's: a tab opened before an
+      // update keeps the old one installed, which lacks the newer messages
+      __BRIDGE_BUILD__: JSON.stringify(Date.now().toString(36)),
+    },
   }),
   // A function: WXT loads .env after importing this file
   manifest: ({ mode }) => ({
@@ -57,6 +62,9 @@ export default defineConfig({
     // favicon: the tab's icon from Chrome's cache (no request to the site)
     permissions: ["activeTab", "scripting", "storage", "identity", "favicon"],
     optional_host_permissions: ["<all_urls>"],
+    // Saving a summary's audio under its own name: asked for on the first
+    // export, so it adds no warning at install
+    optional_permissions: ["downloads"],
     // Only the API: extension requests to a granted host skip CORS, so the
     // API doesn't need to know the (per-install) extension id
     host_permissions: [
