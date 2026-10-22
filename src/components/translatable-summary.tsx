@@ -2,6 +2,7 @@ import { LanguagesIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { BlockedReason } from "@/components/blocked-reason";
 import { DeleteButton } from "@/components/delete-button";
+import { Loadable, LoadingScope, useLoadingShown } from "@/components/loadable";
 import { MediaControl } from "@/components/summary-media";
 import { type SummaryShape, SummaryView } from "@/components/summary-view";
 import { TextSkeleton } from "@/components/text-skeleton";
@@ -198,6 +199,9 @@ export function TranslatableSummary({
         : // Opening a saved one: same layout, content still on its way
           { ...summary, title: "", content: "", effort: "", credits: 0 }
       : summary);
+  // The version on screen is still on its way (or the dev switch shows its
+  // skeleton): what acts on it waits
+  const contentLoading = useLoadingShown(view.content === "" && !draft);
 
   return (
     <div className="space-y-5">
@@ -222,39 +226,41 @@ export function TranslatableSummary({
         </fieldset>
       )}
 
-      <SummaryView
-        summary={view}
-        streaming={draft !== undefined}
-        actions={actions}
-      />
+      <LoadingScope loading={contentLoading}>
+        <SummaryView
+          summary={view}
+          streaming={draft !== undefined}
+          actions={actions}
+        />
 
-      {/* The version on screen as audio and as video, side by side, once
+        {/* The version on screen as audio and as video, side by side, once
           its text is here (not while a translation is still being written).
           A player takes the whole row */}
-      {!draft && view.content !== "" && (
-        <div className="flex flex-wrap items-start gap-2">
-          {(["audio", "video"] as const).map((kind) => (
-            <MediaControl
-              key={`${kind}:${summary.id}:${shown}`}
-              kind={kind}
-              session={session}
-              summaryId={summary.id}
-              language={shown === summary.language ? undefined : shown}
-              title={view.title}
-            />
-          ))}
-        </div>
-      )}
+        {!draft && view.content !== "" && (
+          <div className="flex flex-wrap items-start gap-2">
+            {(["audio", "video"] as const).map((kind) => (
+              <MediaControl
+                key={`${kind}:${summary.id}:${shown}`}
+                kind={kind}
+                session={session}
+                summaryId={summary.id}
+                language={shown === summary.language ? undefined : shown}
+                title={view.title}
+              />
+            ))}
+          </div>
+        )}
 
-      {targets.length > 0 && (
-        <TranslateControl
-          session={session}
-          summaryId={summary.id}
-          targets={targets}
-          onTranslate={translate}
-          onOpen={setShown}
-        />
-      )}
+        {targets.length > 0 && (
+          <TranslateControl
+            session={session}
+            summaryId={summary.id}
+            targets={targets}
+            onTranslate={translate}
+            onOpen={setShown}
+          />
+        )}
+      </LoadingScope>
 
       {failure && (
         <TranslationFailure
@@ -379,6 +385,9 @@ function TranslateButton({
     !cached &&
     ((quote.data !== undefined && !quote.data.sufficient) ||
       (price !== undefined && balance !== undefined && balance < price));
+  // No price yet (its skeleton is showing): nothing to agree to. One that
+  // already exists ("Open") needs only its quote, which says so
+  const unpriced = useLoadingShown(price === undefined);
   const name = languageLabel(locale, language);
   const buyCredits = useBuyCredits();
   // Why it's disabled, when there's something to say
@@ -394,7 +403,12 @@ function TranslateButton({
         <Button
           variant="outline"
           size="sm"
-          disabled={blocked || quote.isPending || insufficient}
+          disabled={
+            blocked ||
+            quote.data === undefined ||
+            (!cached && unpriced) ||
+            insufficient
+          }
           onClick={() => {
             if (cached) onOpen();
             else if (price !== undefined) onTranslate(price);
@@ -405,16 +419,19 @@ function TranslateButton({
           {cached ? dict.translate.open(name) : dict.translate.translate}
           {!cached && (
             <span className="font-normal text-muted-foreground">
-              ·{" "}
-              {price === undefined ? (
-                // Only the number comes from the API: "· ▭ credits"
-                <>
-                  <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
-                  {dict.credits.unit}
-                </>
-              ) : (
-                formatCredits(locale, price)
-              )}
+              · {/* Only the number comes from the API: "· ▭ credits" */}
+              <Loadable
+                inline
+                loading={price === undefined}
+                skeleton={
+                  <>
+                    <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
+                    {dict.credits.unit}
+                  </>
+                }
+              >
+                {price !== undefined && formatCredits(locale, price)}
+              </Loadable>
             </span>
           )}
         </Button>

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { useId, useRef, useState } from "react";
+import { Loadable } from "@/components/loadable";
 import { Notice } from "@/components/notice";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { Button } from "@/components/ui/button";
@@ -264,7 +265,13 @@ export function FillForm({
           <SlidersHorizontalIcon className="size-4 shrink-0 text-muted-foreground" />
           <span className="font-medium">{dict.options.title}</span>
           <span className="min-w-0 flex-1 truncate text-muted-foreground">
-            {optionsLoading ? <TextSkeleton className="w-4/5" /> : summary}
+            <Loadable
+              inline
+              loading={optionsLoading}
+              skeleton={<TextSkeleton className="w-4/5" />}
+            >
+              {summary}
+            </Loadable>
           </span>
           <ChevronDownIcon
             className={cn(
@@ -406,24 +413,30 @@ export function FillForm({
           {ready && (
             <span className="font-normal opacity-70">
               ·{" "}
-              {price === undefined || stale ? (
-                <>
-                  <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
-                  {dict.credits.unit}
-                </>
-              ) : (
-                formatCredits(locale, price)
-              )}
+              <Loadable
+                inline
+                loading={price === undefined || stale}
+                skeleton={
+                  <>
+                    <TextSkeleton className="w-3 bg-current opacity-30" />{" "}
+                    {dict.credits.unit}
+                  </>
+                }
+              >
+                {price !== undefined && formatCredits(locale, price)}
+              </Loadable>
             </span>
           )}
         </Button>
         <p className="text-xs text-muted-foreground tabular-nums">
           {dict.credits.balance}:{" "}
-          {balance === undefined ? (
-            <TextSkeleton className="w-16" />
-          ) : (
-            formatCredits(locale, balance)
-          )}
+          <Loadable
+            inline
+            loading={balance === undefined}
+            skeleton={<TextSkeleton className="w-16" />}
+          >
+            {balance !== undefined && formatCredits(locale, balance)}
+          </Loadable>
         </p>
       </div>
     </form>

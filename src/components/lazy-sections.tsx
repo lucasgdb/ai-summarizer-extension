@@ -38,14 +38,24 @@ export function preloadSections() {
   else setTimeout(load, 1);
 }
 
-/** The options bar and the Summarize button, before the form's code arrives */
-export function FormFallback() {
+/**
+ * The options bar, the Summarize button (and "Select again" for a picked
+ * element) and the balance under them, before the form's code arrives. The
+ * form's own layout: gap-5, then the buttons and the balance 12px apart
+ */
+export function FormFallback({ reselect = false }: { reselect?: boolean }) {
   return (
     <div className="flex flex-col gap-5" aria-busy="true">
-      <Skeleton className="h-10 w-full rounded-lg" />
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-44" />
-        <Skeleton className="h-8 w-28" />
+      {/* The options toggle: 40px, plus its 1px border above and below */}
+      <Skeleton className="h-[2.625rem] w-full rounded-lg" />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-8 w-43" />
+          {reselect && <Skeleton className="h-8 w-28" />}
+        </div>
+        <div className="flex h-4 items-center">
+          <Skeleton className="h-3 w-29" />
+        </div>
       </div>
     </div>
   );

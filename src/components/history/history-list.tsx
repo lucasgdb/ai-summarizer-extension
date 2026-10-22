@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useId } from "react";
 import { Hint } from "@/components/hint";
 import { InfiniteList } from "@/components/infinite-list";
+import { Loadable } from "@/components/loadable";
 import { SourceBadge } from "@/components/source-badge";
 import { useSummaryMeta } from "@/components/summary-view";
 import { TextSkeleton } from "@/components/text-skeleton";
@@ -46,7 +47,9 @@ function Languages({
 
   return (
     <Hint label={description}>
-      <span className="inline-flex shrink-0 items-center gap-1 uppercase">
+      {/* align-top: on the baseline, the icon would push the line from 16px
+          to 19px (and off the skeleton's) */}
+      <span className="inline-flex h-4 shrink-0 items-center gap-1 align-top uppercase">
         <LanguagesIcon className="size-3.5" aria-hidden="true" />
         <span aria-hidden="true">{codes.join(" · ")}</span>
         <span className="sr-only">{description}</span>
@@ -111,7 +114,7 @@ function HistoryRow({
       {item.preview && (
         <span
           id={`${id}-preview`}
-          className="mt-0.5 line-clamp-2 block text-sm text-muted-foreground"
+          className="mt-0.5 line-clamp-2 text-sm text-muted-foreground"
         >
           {item.preview}
         </span>
@@ -132,7 +135,15 @@ function HistoryRow({
           </MetaPiece>
           {host && <MetaPiece truncate>{host}</MetaPiece>}
           {meta !== "" && (
-            <MetaPiece>{meta ?? <TextSkeleton className="w-28" />}</MetaPiece>
+            <MetaPiece>
+              <Loadable
+                inline
+                loading={meta == null}
+                skeleton={<TextSkeleton className="w-28" />}
+              >
+                {meta}
+              </Loadable>
+            </MetaPiece>
           )}
           {(item.language || (item.translations?.length ?? 0) > 0) && (
             <MetaPiece>
@@ -175,8 +186,8 @@ export function HistoryList({
       query={useHistory(session, filter)}
       loading={searching}
       getKey={(item) => item.id}
-      // py-2.5 + title (24) + meta (6 + 16), plus the two-line preview (2 + 40)
-      estimateSize={(item) => (item.preview ? 108 : 66)}
+      // py-2.5 + title (20) + meta (6 + 16), plus the two-line preview (2 + 40)
+      estimateSize={(item) => (item.preview ? 104 : 62)}
       initialOffset={initialOffset}
       errorTitle={dict.history.loadError}
       skeleton={<HistoryRowsSkeleton />}

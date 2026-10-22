@@ -1,5 +1,6 @@
 import { CoinsIcon, TriangleAlertIcon } from "lucide-react";
 import { BackButton } from "@/components/back-button";
+import { Loadable } from "@/components/loadable";
 import { Notice } from "@/components/notice";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { Button } from "@/components/ui/button";
@@ -29,14 +30,16 @@ export function BalanceSection({
       <p className="text-sm text-muted-foreground">{dict.credits.balance}</p>
       {/* min-h-9: the line's real height (text-3xl), kept while loading */}
       <p className="mt-1 flex min-h-9 items-baseline gap-2 text-3xl font-semibold tracking-tighter tabular-nums">
-        {balance === undefined ? (
-          // In this flex line there's no 3xl text while loading: the words
-          // after it sit on the skeleton's bottom edge, and 28px puts them
-          // exactly where they are next to the number
-          <TextSkeleton className="h-[28px] w-20" />
-        ) : (
-          formatNumber(locale, balance)
-        )}
+        {/* In this flex line there's no 3xl text while loading: the words
+            after it sit on the skeleton's bottom edge, and 28px puts them
+            exactly where they are next to the number */}
+        <Loadable
+          inline
+          loading={balance === undefined}
+          skeleton={<TextSkeleton className="h-[28px] w-20" />}
+        >
+          {balance !== undefined && formatNumber(locale, balance)}
+        </Loadable>
         <span className="text-base font-normal tracking-normal text-muted-foreground">
           {dict.credits.title.toLowerCase()}
         </span>

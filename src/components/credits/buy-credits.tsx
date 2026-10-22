@@ -6,6 +6,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Loadable } from "@/components/loadable";
 import { Notice } from "@/components/notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -140,8 +141,12 @@ export function BuyCredits({
             </p>
           )}
           <ul className="space-y-2" aria-busy={packs.isPending}>
-            {packs.data ? (
-              packs.data.packs.map((pack) => (
+            <Loadable
+              loading={!packs.data}
+              skeleton={<PackCardsSkeleton />}
+              className="space-y-2"
+            >
+              {packs.data?.packs.map((pack) => (
                 <PackCard
                   key={pack.id}
                   pack={pack}
@@ -150,10 +155,8 @@ export function BuyCredits({
                   pending={create.isPending && chosen?.id === pack.id}
                   onBuy={() => buy(pack)}
                 />
-              ))
-            ) : (
-              <PackCardsSkeleton />
-            )}
+              ))}
+            </Loadable>
           </ul>
         </div>
       )}

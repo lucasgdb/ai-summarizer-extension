@@ -52,8 +52,9 @@ export function TypeChipsSkeleton() {
 function HistoryRowSkeleton({ title, host }: { title: string; host: string }) {
   return (
     <div className="py-2.5" aria-hidden="true">
-      <div className="flex h-6 items-center">
-        <Skeleton className={`h-4 ${title}`} />
+      {/* The title: 14px text on a 20px line */}
+      <div className="flex h-5 items-center">
+        <Skeleton className={`h-3.5 ${title}`} />
       </div>
       {/* Two preview lines of 20px, like the line-clamp-2 text: the first
           full width, the second cut short. Widths are explicit: in a flex row

@@ -1,4 +1,5 @@
 import { Trash2Icon, XIcon } from "lucide-react";
+import { useInLoading } from "@/components/loadable";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +36,8 @@ export function DeleteButton({
   pending: boolean;
 }) {
   const dict = useDictionary();
+  // The summary it deletes is still loading
+  const loading = useInLoading();
 
   return (
     <Dialog>
@@ -43,7 +46,7 @@ export function DeleteButton({
           variant="ghost"
           size="sm"
           className="text-muted-foreground"
-          disabled={pending}
+          disabled={pending || loading}
         >
           {pending ? (
             <Spinner data-icon="inline-start" label={dict.loading} />

@@ -1,5 +1,6 @@
 import { FileTextIcon, GlobeIcon } from "lucide-react";
 import { useState } from "react";
+import { Loadable } from "@/components/loadable";
 import { Truncated } from "@/components/truncated";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -45,8 +46,9 @@ function CardSkeleton() {
           <Skeleton className="size-4 rounded-sm" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex h-[1.375rem] items-center">
-            <Skeleton className="h-4 w-4/5" />
+          {/* One line of the title: 14px at leading-snug (19.25px) */}
+          <div className="flex h-[1lh] items-center leading-snug">
+            <Skeleton className="h-3.5 w-4/5" />
           </div>
           <div className="mt-0.5 flex h-4 items-center">
             <Skeleton className="h-3 w-28" />
@@ -77,12 +79,18 @@ function CardSkeleton() {
  * undefined while it's being read; nothing without access to the tab.
  */
 export function PageCard({ info }: { info: PageInfo | null | undefined }) {
+  if (info === null) return null;
+  return (
+    <Loadable loading={info === undefined} skeleton={<CardSkeleton />}>
+      {info && <LoadedCard info={info} />}
+    </Loadable>
+  );
+}
+
+function LoadedCard({ info }: { info: PageInfo }) {
   const locale = useLocale();
   const dict = getDictionary(locale);
   const [iconFailed, setIconFailed] = useState(false);
-
-  if (info === undefined) return <CardSkeleton />;
-  if (info === null) return null;
 
   const host = hostname(info.url);
   const title =

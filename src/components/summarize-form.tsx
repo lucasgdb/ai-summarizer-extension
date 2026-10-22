@@ -8,6 +8,7 @@ import {
 import { AnimatePresence, m } from "motion/react";
 import { type ReactNode, useEffect, useId, useState } from "react";
 import { BlockedReason } from "@/components/blocked-reason";
+import { Loadable } from "@/components/loadable";
 import { Notice } from "@/components/notice";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { Button } from "@/components/ui/button";
@@ -195,7 +196,13 @@ function PricedForm({
             <SlidersHorizontalIcon className="size-4 shrink-0 text-muted-foreground" />
             <span className="font-medium">{dict.options.title}</span>
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
-              {options ? summary : <TextSkeleton className="w-4/5" />}
+              <Loadable
+                inline
+                loading={!options}
+                skeleton={<TextSkeleton className="w-4/5" />}
+              >
+                {summary}
+              </Loadable>
             </span>
             <ChevronDownIcon
               className={cn(
@@ -420,11 +427,15 @@ function PricedForm({
                   )}
                 >
                   ·{" "}
-                  {price === undefined ? (
-                    <TextSkeleton className="w-14 bg-current opacity-30" />
-                  ) : (
-                    formatCredits(locale, price)
-                  )}
+                  <Loadable
+                    inline
+                    loading={price === undefined}
+                    skeleton={
+                      <TextSkeleton className="w-14 bg-current opacity-30" />
+                    }
+                  >
+                    {price !== undefined && formatCredits(locale, price)}
+                  </Loadable>
                 </span>
               )}
             </Button>
@@ -438,11 +449,13 @@ function PricedForm({
         {!insufficient && (
           <p className="text-xs text-muted-foreground tabular-nums">
             {dict.credits.balance}:{" "}
-            {balance === undefined ? (
-              <TextSkeleton className="w-16" />
-            ) : (
-              formatCredits(locale, balance)
-            )}
+            <Loadable
+              inline
+              loading={balance === undefined}
+              skeleton={<TextSkeleton className="w-16" />}
+            >
+              {balance !== undefined && formatCredits(locale, balance)}
+            </Loadable>
           </p>
         )}
       </div>

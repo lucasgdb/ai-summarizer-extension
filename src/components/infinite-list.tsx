@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Loadable } from "@/components/loadable";
 import { Notice } from "@/components/notice";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -139,45 +140,48 @@ export function InfiniteList<T>({
 
   if (items.length === 0) return empty;
 
+  // Loaded: the dev switch can still show the skeleton, or over the rows
   return (
-    <div
-      ref={listRef}
-      className="relative w-full"
-      style={{ height: virtualizer.getTotalSize() }}
-    >
-      {rows.map((row) => {
-        const item = items[row.index];
-        return (
-          <div
-            key={row.key}
-            data-index={row.index}
-            ref={virtualizer.measureElement}
-            className="absolute top-0 left-0 w-full"
-            style={{
-              transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
-            }}
-          >
-            {item !== undefined ? (
-              renderItem(item)
-            ) : isFetchNextPageError ? (
-              <div className="flex justify-center py-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fetchNextPage()}
-                >
-                  {dict.tryAgain}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
-                <Spinner />
-                {dict.history.loadingMore}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <Loadable loading={false} skeleton={skeleton}>
+      <div
+        ref={listRef}
+        className="relative w-full"
+        style={{ height: virtualizer.getTotalSize() }}
+      >
+        {rows.map((row) => {
+          const item = items[row.index];
+          return (
+            <div
+              key={row.key}
+              data-index={row.index}
+              ref={virtualizer.measureElement}
+              className="absolute top-0 left-0 w-full"
+              style={{
+                transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
+              }}
+            >
+              {item !== undefined ? (
+                renderItem(item)
+              ) : isFetchNextPageError ? (
+                <div className="flex justify-center py-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                  >
+                    {dict.tryAgain}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                  <Spinner />
+                  {dict.history.loadingMore}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Loadable>
   );
 }

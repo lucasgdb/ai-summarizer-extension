@@ -7,6 +7,12 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Hint } from "@/components/hint";
+import {
+  Loadable,
+  LoadingScope,
+  useInLoading,
+  useLoadingShown,
+} from "@/components/loadable";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -153,24 +159,37 @@ export function SummaryView({
   const host = summary.source_host ?? hostname(summary.source_url);
   const hasContent = summary.content !== "";
   const meta = useSummaryMeta(summary);
+  // The text's skeleton is on screen: nothing to copy or export yet
+  const textLoading = useLoadingShown(!hasContent && !streaming);
+  const scopeLoading = useInLoading();
+  const contentLoading = textLoading || scopeLoading;
 
   return (
     <article className="space-y-4" aria-busy={streaming || !hasContent}>
       <header className="space-y-1.5">
-        {summary.title ? (
-          <h2 className="title text-lg leading-snug font-semibold tracking-tight">
-            {summary.title}
-          </h2>
-        ) : streaming && summary.source_title ? (
-          // The model writes its title after the text: until then, the page's
-          // own title, muted so it doesn't read as the final one (not more:
-          // it's still text to read, 4.5:1)
-          <h2 className="title line-clamp-2 text-lg leading-snug font-semibold tracking-tight text-muted-foreground">
-            {summary.source_title}
-          </h2>
-        ) : (
-          <Skeleton className="h-6 w-3/4" />
-        )}
+        <Loadable
+          loading={!summary.title && !(streaming && summary.source_title)}
+          skeleton={
+            // One line of the title, in its font: on the text's baseline
+            // (at 18px the glyphs aren't centered in the 24.75px line)
+            <div className="text-lg leading-snug font-semibold">
+              <TextSkeleton className="w-3/4" />
+            </div>
+          }
+        >
+          {summary.title ? (
+            <h2 className="title text-lg leading-snug font-semibold tracking-tight">
+              {summary.title}
+            </h2>
+          ) : (
+            // The model writes its title after the text: until then, the page's
+            // own title, muted so it doesn't read as the final one (not more:
+            // it's still text to read, 4.5:1)
+            <h2 className="title line-clamp-2 text-lg leading-snug font-semibold tracking-tight text-muted-foreground">
+              {summary.source_title}
+            </h2>
+          )}
+        </Loadable>
         <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground tabular-nums">
           <time dateTime={summary.created_at}>
             {formatDate(locale, summary.created_at)}
@@ -209,19 +228,28 @@ export function SummaryView({
         </p>
       </header>
 
-      {hasContent ? (
-        <Markdown streaming={streaming}>{summary.content}</Markdown>
-      ) : streaming ? (
-        <Thinking since={summary.created_at} />
-      ) : (
-        <ContentSkeleton />
-      )}
+      <Loadable
+        loading={!hasContent && !streaming}
+        skeleton={<ContentSkeleton />}
+      >
+        {hasContent ? (
+          <Markdown streaming={streaming}>{summary.content}</Markdown>
+        ) : (
+          <Thinking since={summary.created_at} />
+        )}
+      </Loadable>
 
       {/* The actions move to a line of their own when the meta wouldn't fit
           beside them (a narrow panel), instead of cutting it short */}
       <footer className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 border-t pt-2">
         <p className="min-w-48 flex-1 truncate text-xs text-muted-foreground tabular-nums">
-          {meta ?? <TextSkeleton className="w-36" />}
+          <Loadable
+            inline
+            loading={meta == null}
+            skeleton={<TextSkeleton className="w-36" />}
+          >
+            {meta}
+          </Loadable>
         </p>
         {streaming ? (
           // While thinking, the counter above already says so
@@ -234,9 +262,15 @@ export function SummaryView({
         ) : (
           // Still loading from the history: same buttons, nothing to copy yet
           <div className="-mr-2 ml-auto flex shrink-0 items-center">
-            <CopyButton text={summary.content} disabled={!hasContent} />
-            <ExportButton summary={summary} disabled={!hasContent} />
-            {actions}
+            <CopyButton
+              text={summary.content}
+              disabled={!hasContent || contentLoading}
+            />
+            <ExportButton
+              summary={summary}
+              disabled={!hasContent || contentLoading}
+            />
+            <LoadingScope loading={contentLoading}>{actions}</LoadingScope>
           </div>
         )}
       </footer>

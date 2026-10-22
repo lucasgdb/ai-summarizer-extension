@@ -61,6 +61,10 @@ To load a build by hand: `chrome://extensions` → Developer mode → Load unpac
 
 `src/styles/globals.css` holds the design system in three layers: **primitives** (`--neutral-*`, `--blue-600`, `--emerald-*`, `--duration-*`: raw values), **semantic** tokens (shadcn's names plus `--success`, `--highlight`, `--overlay`, `--media`/`--on-media`, `--duration-fast`/`normal`, `--ease-standard`: what a value is for, set per theme) and **component** tokens (`--popup-*`, `--player-*`, `--header-height`). Components use only semantic tokens, through Tailwind (`text-success`, `bg-overlay`, `p-card`, `text-code`, the `narrow-panel:`/`panel:`/`wide-panel:` breakpoints). `src/lib/motion.ts` mirrors the motion tokens for motion/react, and `src/lib/bridge/palette.ts` the colors for the page scripts, which draw on other sites where the CSS variables don't exist. The Google logo keeps its brand colors.
 
+## Loading states
+
+Every skeleton goes through `<Loadable loading={…} skeleton={…}>` (`src/components/loadable.tsx`; `inline` inside a line of text). In a build it is just `loading ? skeleton : children`. Under `pnpm dev` a switch at the bottom of the panel (`src/lib/dev-skeleton.ts`) sets every loading state on screen to **real**, **skeleton** (the skeleton even with the data loaded) or **overlay** (the data, with the skeleton's shapes over it in translucent red) to line them up to the pixel. A new loading state uses `Loadable` too, or the switch won't see it.
+
 ## UI components
 
 shadcn/ui lives in `src/components/ui` (generated, lint disabled there). Add more with:

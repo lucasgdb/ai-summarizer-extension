@@ -13,7 +13,7 @@ import { Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { browser } from "#imports";
 import { AccountMenu } from "@/components/account-menu";
 import { BackButton } from "@/components/back-button";
-import { SkeletonPreview } from "@/components/dev/skeleton-preview";
+import { SkeletonSwitch } from "@/components/dev/skeleton-switch";
 import { FillSection } from "@/components/fill/fill-section";
 import { emptyFilter, type FilterState } from "@/components/history/filters";
 import { KeepFocus } from "@/components/keep-focus";
@@ -29,6 +29,7 @@ import {
   preloadSections,
   SummarizeForm,
 } from "@/components/lazy-sections";
+import { Loadable } from "@/components/loadable";
 import { ModeSwitch } from "@/components/mode-switch";
 import { Notice } from "@/components/notice";
 import { PageCard } from "@/components/page-card";
@@ -276,45 +277,53 @@ export function App() {
                   }
                 />
               </div>
-              {/* In development, a switch shows each one's skeleton too */}
+              {/* Each screen's skeleton, for the dev switch (components/loadable) */}
               {section === "credits" && (
-                <SkeletonPreview
+                <Loadable
+                  loading={false}
                   skeleton={<CreditsFallback />}
-                  real={
-                    <Suspense fallback={<CreditsFallback />}>
-                      <CreditsPage session={session} onBuy={openBuy} />
-                    </Suspense>
-                  }
-                />
+                  className="flex flex-1 flex-col"
+                >
+                  <Suspense fallback={<CreditsFallback />}>
+                    <CreditsPage session={session} onBuy={openBuy} />
+                  </Suspense>
+                </Loadable>
               )}
               {section === "buy" && (
-                <SkeletonPreview
+                <Loadable
+                  loading={false}
                   skeleton={<BuyCreditsFallback onBack={closeBuy} />}
-                  real={
-                    <Suspense
-                      fallback={<BuyCreditsFallback onBack={closeBuy} />}
-                    >
-                      <BuyCredits
-                        key={session.user.id}
-                        session={session}
-                        onBack={closeBuy}
-                      />
-                    </Suspense>
-                  }
-                />
+                  className="flex flex-1 flex-col"
+                >
+                  <Suspense fallback={<BuyCreditsFallback onBack={closeBuy} />}>
+                    <BuyCredits
+                      key={session.user.id}
+                      session={session}
+                      onBack={closeBuy}
+                    />
+                  </Suspense>
+                </Loadable>
               )}
               {section === "history" && (
                 <div className="flex flex-1 flex-col">
-                  <Suspense fallback={<HistoryFallback />}>
-                    <History
-                      key={session.user.id}
-                      session={session}
-                      open={openSummary}
-                      onOpenChange={setOpenSummary}
-                      filter={historyFilter}
-                      onFilterChange={setHistoryFilter}
-                    />
-                  </Suspense>
+                  {/* The list has a skeleton; an open summary doesn't (it
+                      comes from the list's own data) */}
+                  <Loadable
+                    loading={false}
+                    skeleton={openSummary ? null : <HistoryFallback />}
+                    className="flex flex-1 flex-col"
+                  >
+                    <Suspense fallback={<HistoryFallback />}>
+                      <History
+                        key={session.user.id}
+                        session={session}
+                        open={openSummary}
+                        onOpenChange={setOpenSummary}
+                        filter={historyFilter}
+                        onFilterChange={setHistoryFilter}
+                      />
+                    </Suspense>
+                  </Loadable>
                 </div>
               )}
             </BuyCreditsContext>
@@ -324,6 +333,8 @@ export function App() {
         </KeepFocus>
       </main>
 
+      {/* Development only: forces the skeletons on, or over the data */}
+      <SkeletonSwitch />
       <footer className="flex items-center justify-between px-4 pb-6 text-sm text-muted-foreground">
         <a
           className="flex items-center gap-1.5 transition-colors hover:text-foreground"
@@ -887,22 +898,33 @@ function Content({
               </p>
             )}
             {state.status === "selected" && content.text && (
-              <Suspense fallback={<FormFallback />}>
-                <SummarizeForm
-                  session={session}
-                  content={content}
-                  priceChanged={state.priceChanged ?? false}
-                  onSummarize={(credits, generation) =>
-                    onSummarize(content, credits, generation)
+              <Loadable
+                loading={false}
+                skeleton={
+                  <FormFallback reselect={content.source === "element"} />
+                }
+              >
+                <Suspense
+                  fallback={
+                    <FormFallback reselect={content.source === "element"} />
                   }
-                  onReselect={
-                    // The whole page or a PDF would just read the same again
-                    content.source === "element"
-                      ? () => onCapture("element")
-                      : undefined
-                  }
-                />
-              </Suspense>
+                >
+                  <SummarizeForm
+                    session={session}
+                    content={content}
+                    priceChanged={state.priceChanged ?? false}
+                    onSummarize={(credits, generation) =>
+                      onSummarize(content, credits, generation)
+                    }
+                    onReselect={
+                      // The whole page or a PDF would just read the same again
+                      content.source === "element"
+                        ? () => onCapture("element")
+                        : undefined
+                    }
+                  />
+                </Suspense>
+              </Loadable>
             )}
             {state.status === "summary-failed" && <Separator />}
             {state.status === "summary-failed" && (
@@ -1007,14 +1029,17 @@ function ReadingPdf({
           />
         </div>
         <p className="text-xs text-muted-foreground tabular-nums">
-          {progress ? (
-            dict.pdf.progress(
-              formatNumber(locale, progress.page),
-              formatNumber(locale, progress.total),
-            )
-          ) : (
-            <TextSkeleton className="w-24" />
-          )}
+          <Loadable
+            inline
+            loading={!progress}
+            skeleton={<TextSkeleton className="w-24" />}
+          >
+            {progress &&
+              dict.pdf.progress(
+                formatNumber(locale, progress.page),
+                formatNumber(locale, progress.total),
+              )}
+          </Loadable>
         </p>
       </div>
     </section>

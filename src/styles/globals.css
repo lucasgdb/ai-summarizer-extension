@@ -245,6 +245,15 @@ body {
   line-height: var(--text-sm--line-height);
 }
 
+/* What can't be used says so, everywhere: the "not allowed" cursor.
+   Unlayered, so it beats any cursor utility (cursor-pointer…) a component
+   sets for its enabled state */
+:disabled,
+[aria-disabled="true"],
+[data-disabled]:not([data-disabled="false"]) {
+  cursor: not-allowed;
+}
+
 /* Scrolls inside, like the panel */
 html[data-mode="popup"] body {
   width: var(--popup-width);

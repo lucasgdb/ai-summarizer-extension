@@ -19,6 +19,7 @@ import {
 import { browser } from "#imports";
 import { BlockedReason } from "@/components/blocked-reason";
 import { Hint } from "@/components/hint";
+import { Loadable, useLoadingShown } from "@/components/loadable";
 import { TextSkeleton } from "@/components/text-skeleton";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -103,6 +104,10 @@ export function MediaControl({
   const Icon = icons[kind];
   const { pollMs, waitLimitMs } = timing[kind];
   const quote = useMediaQuote(kind, session, summaryId, language);
+  // No price yet (its skeleton is showing): nothing to agree to. One that
+  // already exists needs only its quote, which says so: not the rest of the
+  // summary screen
+  const unpriced = useLoadingShown(quote.data?.credits === undefined);
   const balance = useBalance(session).data ?? quote.data?.balance;
   const buyCredits = useBuyCredits();
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
@@ -341,7 +346,9 @@ export function MediaControl({
         <Button
           variant="outline"
           size="sm"
-          disabled={quote.isPending || insufficient}
+          disabled={
+            quote.data === undefined || (!cached && unpriced) || insufficient
+          }
           aria-label={
             cached
               ? text.open
@@ -364,16 +371,19 @@ export function MediaControl({
             <>
               {text.generate}
               <span className="font-normal text-muted-foreground tabular-nums">
-                ·{" "}
-                {price === undefined ? (
-                  // Only the number comes from the API
-                  <>
-                    <TextSkeleton className="w-4 bg-current opacity-30" />{" "}
-                    {dict.credits.unit}
-                  </>
-                ) : (
-                  formatCredits(locale, price)
-                )}
+                · {/* Only the number comes from the API */}
+                <Loadable
+                  inline
+                  loading={price === undefined}
+                  skeleton={
+                    <>
+                      <TextSkeleton className="w-4 bg-current opacity-30" />{" "}
+                      {dict.credits.unit}
+                    </>
+                  }
+                >
+                  {price !== undefined && formatCredits(locale, price)}
+                </Loadable>
               </span>
             </>
           )}

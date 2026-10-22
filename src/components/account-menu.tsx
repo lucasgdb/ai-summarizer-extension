@@ -10,6 +10,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { Loadable } from "@/components/loadable";
 import { Truncated } from "@/components/truncated";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -88,15 +89,19 @@ export function AccountMenu({
                 credits !== undefined && credits <= 0 && "text-destructive",
               )}
             >
-              {credits === undefined ? (
-                <TextSkeleton className="w-6" />
-              ) : (
-                // Rolls the digits up or down as credits are spent or added
-                <NumberFlow
-                  value={credits}
-                  locales={localeConfig[locale].intl}
-                />
-              )}
+              <Loadable
+                inline
+                loading={credits === undefined}
+                skeleton={<TextSkeleton className="w-6" />}
+              >
+                {/* Rolls the digits up or down as credits are spent or added */}
+                {credits !== undefined && (
+                  <NumberFlow
+                    value={credits}
+                    locales={localeConfig[locale].intl}
+                  />
+                )}
+              </Loadable>
             </span>
             {/* 24px: fills the pill's height, minus the border */}
             <Avatar className="size-6">
@@ -134,11 +139,14 @@ export function AccountMenu({
             <CoinsIcon />
             {dict.credits.title}
             <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-              {balance.data === undefined ? (
-                <TextSkeleton className="w-8" />
-              ) : (
-                formatNumber(locale, balance.data)
-              )}
+              <Loadable
+                inline
+                loading={balance.data === undefined}
+                skeleton={<TextSkeleton className="w-8" />}
+              >
+                {balance.data !== undefined &&
+                  formatNumber(locale, balance.data)}
+              </Loadable>
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={onBuyCredits}>
