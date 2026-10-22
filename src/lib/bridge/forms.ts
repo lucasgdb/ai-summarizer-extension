@@ -18,6 +18,7 @@ import type {
   ScannedForm,
 } from "@/lib/messages";
 import { describe } from "./extract";
+import { durations, highlight, highlightTyping } from "./palette";
 
 /** What the API takes (GET /forms/options: max_fields) */
 const maxFields = 100;
@@ -783,10 +784,10 @@ async function toggle(target: { readonly element: HTMLElement }) {
 function flash(element: Element) {
   element.animate(
     [
-      { outline: "2px solid #2563eb", outlineOffset: "2px" },
+      { outline: `2px solid ${highlight}`, outlineOffset: "2px" },
       { outline: "2px solid transparent", outlineOffset: "2px" },
     ],
-    { duration: 1400, easing: "ease-out" },
+    { duration: durations.flash, easing: "ease-out" },
   );
 }
 
@@ -977,7 +978,7 @@ export function applyDelta(id: string, text: string) {
       outline: handle.element.style.outline,
     };
     // While the AI types: a soft outline, and the caret where it writes
-    handle.element.style.outline = "2px solid rgb(37 99 235 / 0.45)";
+    handle.element.style.outline = `2px solid ${highlightTyping}`;
     handle.element.focus({ preventScroll: true });
   }
   state.typing.text += text;

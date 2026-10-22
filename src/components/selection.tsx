@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { Truncated } from "@/components/truncated";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
@@ -114,7 +115,7 @@ export function Selection({
             content.source === "element" && "font-mono",
           )}
         >
-          <span className="truncate">{source}</span>
+          <Truncated className="truncate" text={source} />
         </Badge>
         {pdf && (
           <Badge variant="outline" className="tabular-nums">

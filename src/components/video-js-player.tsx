@@ -214,7 +214,7 @@ function SpeedMenu({ player }: { player: Player }) {
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         aria-label={`${dict.audio.speed}: ${rate}×`}
-        className="h-6 cursor-pointer rounded-md px-1.5 text-xs font-medium tabular-nums text-white/90 outline-none transition-colors hover:bg-white/15 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70 data-[state=open]:bg-white/15"
+        className="h-6 cursor-pointer rounded-md px-1.5 text-xs font-medium tabular-nums text-on-media/90 outline-none transition-colors hover:bg-(--player-menu-hover) hover:text-on-media focus-visible:ring-2 focus-visible:ring-on-media/70 data-[state=open]:bg-(--player-menu-hover)"
       >
         {rate}×
       </DropdownMenuTrigger>

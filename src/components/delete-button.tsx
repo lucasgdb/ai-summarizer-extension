@@ -46,7 +46,7 @@ export function DeleteButton({
           disabled={pending}
         >
           {pending ? (
-            <Spinner data-icon="inline-start" aria-label={dict.loading} />
+            <Spinner data-icon="inline-start" label={dict.loading} />
           ) : (
             <Trash2Icon data-icon="inline-start" />
           )}

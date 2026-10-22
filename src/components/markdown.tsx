@@ -8,8 +8,14 @@ import {
 // A second barrier (the API already strips them): the summary comes from a
 // model that read an untrusted page, so a link is only its text, never
 // something to click, and an image only its alt text, never loaded
+// Headings one level down: the summary's own title is the h2 above it, so
+// the text's "##" sections are h3 (data-md keeps their look, styles/globals.css)
 const components = {
   a: ({ children }) => <span>{children}</span>,
+  h1: ({ children }) => <h3 data-md="h2">{children}</h3>,
+  h2: ({ children }) => <h3 data-md="h2">{children}</h3>,
+  h3: ({ children }) => <h4 data-md="h3">{children}</h4>,
+  h4: ({ children }) => <h5 data-md="h4">{children}</h5>,
 } satisfies MarkdownComponents;
 
 const urlTransform: UrlTransform = () => null;

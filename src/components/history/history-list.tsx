@@ -1,5 +1,6 @@
 import { HistoryIcon, LanguagesIcon, SearchXIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { useId } from "react";
 import { Hint } from "@/components/hint";
 import { InfiniteList } from "@/components/infinite-list";
 import { SourceBadge } from "@/components/source-badge";
@@ -85,29 +86,44 @@ function HistoryRow({
   const locale = useLocale();
   const host = item.source_host ?? hostname(item.source_url);
   const meta = useSummaryMeta(item, { credits: false });
+  const id = useId();
 
+  // Spans, not paragraphs: a button holds phrasing content only. Its name is
+  // the title; the preview and the details are its description
   return (
     <button
       type="button"
+      data-summary-id={item.id}
+      aria-labelledby={`${id}-title`}
+      aria-describedby={`${id}-preview ${id}-meta`}
       onClick={() => onOpen(item)}
       className="-mx-2 block w-[calc(100%+1rem)] cursor-pointer rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
     >
       <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate font-medium tracking-tight">
+        <span
+          id={`${id}-title`}
+          className="block min-w-0 flex-1 truncate font-medium tracking-tight"
+        >
           {item.title}
-        </p>
+        </span>
         <SourceBadge summary={item} />
       </div>
       {item.preview && (
-        <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
+        <span
+          id={`${id}-preview`}
+          className="mt-0.5 line-clamp-2 block text-sm text-muted-foreground"
+        >
           {item.preview}
-        </p>
+        </span>
       )}
       {/* Wraps on narrow panels (the virtualizer measures the real height).
           Each piece carries its "·" in its own left padding, and the pieces
           are pulled left by that padding inside a clipping box: a piece that
           starts a line has its dot cut off, so no line begins with "·" */}
-      <p className="mt-1.5 overflow-hidden text-xs text-muted-foreground tabular-nums">
+      <span
+        id={`${id}-meta`}
+        className="mt-1.5 block overflow-hidden text-xs text-muted-foreground tabular-nums"
+      >
         <span className="-ml-3 flex flex-wrap">
           <MetaPiece>
             <time dateTime={item.created_at}>
@@ -127,7 +143,7 @@ function HistoryRow({
             </MetaPiece>
           )}
         </span>
-      </p>
+      </span>
     </button>
   );
 }
@@ -166,8 +182,12 @@ export function HistoryList({
       skeleton={<HistoryRowsSkeleton />}
       empty={
         filtering ? (
-          // Centered in the space left under the filters, like "no summaries yet"
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
+          // Centered in the space left under the filters, like "no summaries
+          // yet". Announced: typing a search swaps the list for this
+          <div
+            role="status"
+            className="flex flex-1 flex-col items-center justify-center text-center"
+          >
             <SearchXIcon className="mb-3 size-5 text-muted-foreground" />
             <p className="font-medium tracking-tight">
               {dict.history.noResultsTitle}

@@ -27,11 +27,13 @@ export function BalanceSection({
   return (
     <section className="mb-8">
       <p className="text-sm text-muted-foreground">{dict.credits.balance}</p>
-      <p className="mt-1 flex items-baseline gap-2 text-3xl font-semibold tracking-tighter tabular-nums">
+      {/* min-h-9: the line's real height (text-3xl), kept while loading */}
+      <p className="mt-1 flex min-h-9 items-baseline gap-2 text-3xl font-semibold tracking-tighter tabular-nums">
         {balance === undefined ? (
-          // In this flex line there's no 3xl text to set its height while
-          // loading: 29.5px is what keeps the line at the real 36px
-          <TextSkeleton className="h-[29.5px] w-20" />
+          // In this flex line there's no 3xl text while loading: the words
+          // after it sit on the skeleton's bottom edge, and 28px puts them
+          // exactly where they are next to the number
+          <TextSkeleton className="h-[28px] w-20" />
         ) : (
           formatNumber(locale, balance)
         )}
@@ -70,7 +72,7 @@ function PackSkeleton({ credits }: { credits: string }) {
 
   return (
     <li
-      className="flex items-center gap-3 rounded-lg border p-3.5"
+      className="flex items-center gap-3 rounded-lg border p-card"
       aria-hidden="true"
     >
       <div className="min-w-0 flex-1">
@@ -137,8 +139,9 @@ function TransactionSkeleton({ title }: { title: string }) {
   return (
     <div className="flex items-start gap-3 py-2.5" aria-hidden="true">
       <div className="min-w-0 flex-1">
-        <div className="flex h-6 items-center">
-          <Skeleton className="h-4 w-24" />
+        {/* 20px lines: the kind and the amount are 14px text (text-sm) */}
+        <div className="flex h-5 items-center">
+          <Skeleton className="h-3.5 w-24" />
         </div>
         <div className="flex h-5 items-center">
           <Skeleton className={`h-3.5 ${title}`} />
@@ -148,8 +151,8 @@ function TransactionSkeleton({ title }: { title: string }) {
         </div>
       </div>
       <div className="flex flex-col items-end">
-        <div className="flex h-6 items-center">
-          <Skeleton className="h-4 w-10" />
+        <div className="flex h-5 items-center">
+          <Skeleton className="h-3.5 w-10" />
         </div>
         <div className="flex h-4 items-center">
           <Skeleton className="h-3 w-16" />

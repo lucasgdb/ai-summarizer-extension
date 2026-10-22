@@ -1,6 +1,15 @@
 import { getDictionary, getLocale, localeItem } from "@/lib/i18n";
 import type { PickerCommand } from "@/lib/messages";
 import { describe } from "./extract";
+import {
+  durations,
+  highlight,
+  highlightSoft,
+  labelBackground,
+  labelForeground,
+  labelMuted,
+  overlayShadow,
+} from "./palette";
 
 type Handlers = {
   onPick: (element: HTMLElement) => void;
@@ -12,30 +21,28 @@ type Handlers = {
   snap?: (element: HTMLElement) => HTMLElement;
 };
 
-const accent = "#2563eb";
-
 const css = `
   :host { all: initial; }
   .box {
     position: fixed;
     pointer-events: none;
     box-sizing: border-box;
-    border: 1.5px solid ${accent};
-    background: rgb(37 99 235 / 0.12);
+    border: 1.5px solid ${highlight};
+    background: ${highlightSoft};
     border-radius: 2px;
-    transition: all 60ms ease-out;
+    transition: all ${durations.follow}ms ease-out;
   }
   .label, .hint {
     position: fixed;
     pointer-events: none;
-    font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #ededed;
-    background: #0a0a0a;
+    font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: ${labelForeground};
+    background: ${labelBackground};
     border-radius: 4px;
     white-space: nowrap;
   }
   .label { padding: 2px 6px; }
-  .label span { color: #a3a3a3; margin-left: 6px; }
+  .label span { color: ${labelMuted}; margin-left: 6px; }
   .hint {
     left: 50%;
     bottom: 16px;
@@ -43,7 +50,7 @@ const css = `
     padding: 6px 10px;
     font-family: ui-sans-serif, system-ui, sans-serif;
     font-size: 12px;
-    box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+    box-shadow: ${overlayShadow};
   }
   [hidden] { display: none; }
 `;

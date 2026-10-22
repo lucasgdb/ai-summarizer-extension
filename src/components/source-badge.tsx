@@ -26,7 +26,7 @@ export function SourceBadge({
   return (
     <Badge
       variant="outline"
-      className={cn("h-4 shrink-0 px-1.5 text-[0.625rem]", className)}
+      className={cn("h-5 shrink-0 px-1.5 text-xs", className)}
     >
       {label}
     </Badge>

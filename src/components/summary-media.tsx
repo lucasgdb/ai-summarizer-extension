@@ -6,9 +6,16 @@ import {
   PlayIcon,
   RotateCcwIcon,
   RotateCwIcon,
+  TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { browser } from "#imports";
 import { BlockedReason } from "@/components/blocked-reason";
 import { Hint } from "@/components/hint";
@@ -356,7 +363,7 @@ export function MediaControl({
           ) : (
             <>
               {text.generate}
-              <span className="font-normal text-muted-foreground">
+              <span className="font-normal text-muted-foreground tabular-nums">
                 ·{" "}
                 {price === undefined ? (
                   // Only the number comes from the API
@@ -545,7 +552,7 @@ function AudioPlayer({
   return (
     <RevealOnOpen>
       <section
-        className="space-y-3 rounded-lg border p-3"
+        className="space-y-3 rounded-lg border p-card"
         aria-label={dict.audio.player}
       >
         <div className="flex items-center gap-2">
@@ -702,9 +709,14 @@ function AudioPlayer({
         </div>
 
         {failed && (
-          <p role="alert" className="text-sm text-muted-foreground">
-            {dict.audio.failed}
-          </p>
+          <LoadFailed
+            message={dict.audio.failed}
+            onRetry={() => {
+              recoveries.current = 0;
+              setFailed(false);
+              void renew(false);
+            }}
+          />
         )}
         {exportError && (
           <p role="alert" className="text-sm text-muted-foreground">
@@ -825,7 +837,7 @@ function VideoPlayer({
   return (
     <RevealOnOpen>
       <section
-        className="space-y-2 rounded-lg border p-3"
+        className="space-y-2 rounded-lg border p-card"
         aria-label={dict.video.player}
       >
         <div className="flex items-center gap-2">
@@ -883,9 +895,14 @@ function VideoPlayer({
           }}
         />
         {failed && (
-          <p role="alert" className="text-sm text-muted-foreground">
-            {dict.video.loadFailed}
-          </p>
+          <LoadFailed
+            message={dict.video.loadFailed}
+            onRetry={() => {
+              recoveries.current = 0;
+              setFailed(false);
+              void renew();
+            }}
+          />
         )}
         {exportError && (
           <p role="alert" className="text-sm text-muted-foreground">
@@ -894,6 +911,29 @@ function VideoPlayer({
         )}
       </section>
     </RevealOnOpen>
+  );
+}
+
+/** The file wouldn't load even with fresh links: why, and a way to try again */
+function LoadFailed({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  const dict = getDictionary(useLocale());
+  return (
+    <div role="alert" className="flex flex-wrap items-center gap-2">
+      <p className="flex items-center gap-1.5 text-sm text-destructive">
+        <TriangleAlertIcon className="size-4 shrink-0" />
+        {message}
+      </p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RotateCcwIcon data-icon="inline-start" />
+        {dict.tryAgain}
+      </Button>
+    </div>
   );
 }
 
@@ -943,6 +983,14 @@ function useMediaExport(
  */
 function RevealOnOpen({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Opened from its button, which is gone now: focus goes to the player
+  // (before KeepFocus would send it to the page's heading)
+  useLayoutEffect(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body) {
+      ref.current?.focus({ preventScroll: true });
+    }
+  }, []);
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -957,7 +1005,11 @@ function RevealOnOpen({ children }: { children: ReactNode }) {
     };
   }, []);
   return (
-    <div ref={ref} className="w-full basis-full scroll-mb-4">
+    <div
+      ref={ref}
+      tabIndex={-1}
+      className="w-full basis-full scroll-mb-4 outline-none"
+    >
       {children}
     </div>
   );

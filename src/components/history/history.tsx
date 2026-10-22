@@ -1,8 +1,9 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Session } from "@/lib/auth";
 import { useHistory } from "@/lib/queries";
 import type { HistoryItem } from "@/lib/summaries";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { useDictionary } from "@/lib/use-locale";
 import { emptyFilter, type FilterState, isFiltering, toQuery } from "./filters";
 import { HistoryDetail } from "./history-detail";
 import { HistoryFilters } from "./history-filters";
@@ -34,6 +35,31 @@ export function History({
   // The list's own query (shared, no extra request): is it loading?
   const list = useHistory(session, query);
   const listLoading = searching || list.isPending;
+  const dict = useDictionary();
+
+  // Back from a summary: focus returns to the row that opened it (once the
+  // list has drawn it again), not to the top of the page
+  const opened = useRef<string | null>(null);
+  useEffect(() => {
+    if (open) {
+      opened.current = open.id;
+      return;
+    }
+    const id = opened.current;
+    if (!id) return;
+    opened.current = null;
+    let frames = 0;
+    let frame = 0;
+    const tryFocus = () => {
+      const row = document.querySelector<HTMLElement>(
+        `[data-summary-id="${CSS.escape(id)}"]`,
+      );
+      if (row) row.focus({ preventScroll: true });
+      else if (frames++ < 30) frame = requestAnimationFrame(tryFocus);
+    };
+    tryFocus();
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
 
   if (open) {
     return (
@@ -48,6 +74,7 @@ export function History({
 
   return (
     <>
+      <h1 className="sr-only">{dict.nav.history}</h1>
       <HistoryFilters
         session={session}
         listLoading={listLoading}

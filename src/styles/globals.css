@@ -19,27 +19,30 @@
   }
 }
 
+/* Design tokens, in three layers:
+   1. Primitives (:root, --neutral-*, --blue-*…): raw values, no meaning.
+      Only the semantic layer reads them
+   2. Semantic (:root, shadcn's names + ours): what a color is for, set per
+      theme. Components use only these (through the Tailwind names below)
+   3. Component (:root, --player-*, --popup-*…): one component's values,
+      built from the semantic layer
+   The page scripts (lib/bridge) draw on other sites, where none of this
+   exists: they share lib/bridge/palette.ts instead */
+
+/* Tailwind's names for the semantic tokens (bg-background, text-muted-
+   foreground…), plus the scales that aren't colors */
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, monospace;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-overlay: var(--overlay);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -55,6 +58,8 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-media: var(--media);
+  --color-on-media: var(--on-media);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -62,82 +67,142 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Inline code in a summary: between text-xs and the text-sm around it */
+  --text-code: 0.8125rem;
+  /* Cards and boxed sections (p-card): one padding everywhere */
+  --spacing-card: 0.75rem;
+  /* The panel's widths where the layout changes (narrow-panel:, …) */
+  --breakpoint-narrow-panel: 22rem;
+  --breakpoint-panel: 27rem;
+  --breakpoint-wide-panel: 34rem;
+  /* Motion: lib/motion.ts mirrors these for motion/react */
+  --default-transition-duration: var(--duration-fast);
+  --default-transition-timing-function: var(--ease-standard);
 }
 
+/* === 1. Primitives === */
+:root {
+  /* Neutral grays (oklch lightness, no chroma), shadcn's neutral steps.
+     550 is ours: small muted text on --muted needs 4.5:1 */
+  --neutral-0: oklch(1 0 0);
+  --neutral-50: oklch(0.985 0 0);
+  --neutral-100: oklch(0.97 0 0);
+  --neutral-150: oklch(0.94 0 0);
+  --neutral-200: oklch(0.922 0 0);
+  --neutral-400: oklch(0.708 0 0);
+  --neutral-500: oklch(0.556 0 0);
+  --neutral-550: oklch(0.53 0 0);
+  --neutral-800: oklch(0.269 0 0);
+  --neutral-900: oklch(0.205 0 0);
+  --neutral-950: oklch(0.145 0 0);
+  --black: oklch(0 0 0);
+  /* lucasbittencourt.dev's accent (#2563eb) */
+  --blue-600: oklch(0.546 0.215 262.88);
+  --red-600: oklch(0.577 0.245 27.325);
+  --red-400: oklch(0.704 0.191 22.216);
+  /* 700, not 600, in light: 600 is 3.6:1 on the background */
+  --emerald-700: oklch(0.508 0.118 165.612);
+  --emerald-400: oklch(0.765 0.177 163.223);
+
+  /* Durations and easing */
+  --duration-100: 100ms;
+  --duration-150: 150ms;
+  --duration-220: 220ms;
+  --ease-out-cubic: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === 2. Semantic === */
 /* shadcn neutral, with lucasbittencourt.dev's backgrounds (#fafafa / #0a0a0a) */
 :root {
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.269 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --background: var(--neutral-50);
+  --foreground: var(--neutral-800);
+  --card: var(--neutral-0);
+  --card-foreground: var(--neutral-950);
+  --popover: var(--neutral-0);
+  --popover-foreground: var(--neutral-950);
+  --primary: var(--neutral-900);
+  --primary-foreground: var(--neutral-50);
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-900);
+  --muted: var(--neutral-100);
   /* Not --muted: at 0.97 on a 0.985 background, a loading shape vanishes */
-  --skeleton: oklch(0.922 0 0);
-  /* 0.53, not shadcn's 0.556: small text on --muted needs 4.5:1 too */
-  --muted-foreground: oklch(0.53 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --skeleton: var(--neutral-200);
+  --muted-foreground: var(--neutral-550);
+  --accent: var(--neutral-100);
+  --accent-foreground: var(--neutral-900);
+  --destructive: var(--red-600);
+  /* Done, received, a bonus: always with an icon or words, never alone */
+  --success: var(--emerald-700);
+  /* Selected text, and what the page scripts outline */
+  --highlight: var(--blue-600);
+  --highlight-foreground: var(--neutral-0);
+  /* Behind a dialog */
+  --overlay: oklch(0 0 0 / 10%);
+  --border: var(--neutral-200);
+  --input: var(--neutral-200);
+  /* Focus rings: 3:1 against the background in both themes (WCAG 1.4.11) */
+  --ring: var(--neutral-500);
+  /* Video and its controls: dark in both themes */
+  --media: var(--black);
+  --on-media: var(--neutral-0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Motion, by what moves: a popup appearing, a state changing, a section
+     opening (exits run faster than entrances) */
+  --duration-instant: var(--duration-100);
+  --duration-fast: var(--duration-150);
+  --duration-normal: var(--duration-220);
+  --ease-standard: var(--ease-out-cubic);
   color-scheme: light;
 
   @variant dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.94 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --skeleton: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
+    --background: var(--neutral-950);
+    --foreground: var(--neutral-150);
+    --card: var(--neutral-900);
+    --card-foreground: var(--neutral-50);
+    --popover: var(--neutral-900);
+    --popover-foreground: var(--neutral-50);
+    --primary: var(--neutral-200);
+    --primary-foreground: var(--neutral-900);
+    --secondary: var(--neutral-800);
+    --secondary-foreground: var(--neutral-50);
+    --muted: var(--neutral-800);
+    --skeleton: var(--neutral-800);
+    --muted-foreground: var(--neutral-400);
+    --accent: var(--neutral-800);
+    --accent-foreground: var(--neutral-50);
+    --destructive: var(--red-400);
+    --success: var(--emerald-400);
+    --overlay: oklch(0 0 0 / 40%);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --ring: var(--neutral-500);
     color-scheme: dark;
   }
 }
 
+/* === 3. Component === */
+:root {
+  /* The sticky header (h-12) */
+  --header-height: 3rem;
+  /* The toolbar popup has no size of its own: the panel's usual width, and
+     Chrome's tallest popup */
+  --popup-width: 25rem;
+  --popup-height: 600px;
+  /* Video.js (styles/video-js.css) over the video, in both themes */
+  --player-control-height: 2.75rem;
+  --player-play-size: 3.25rem;
+  --player-scrim: color-mix(in oklch, var(--media) 65%, transparent);
+  --player-track: color-mix(in oklch, var(--on-media) 25%, transparent);
+  --player-buffer: color-mix(in oklch, var(--on-media) 35%, transparent);
+  --player-progress: var(--on-media);
+  --player-play-bg: color-mix(in oklch, var(--on-media) 92%, transparent);
+  --player-play-fg: var(--neutral-950);
+  --player-menu-hover: color-mix(in oklch, var(--on-media) 15%, transparent);
+}
+
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   /* The scrollbar is always there (its track shows when there's nothing to
      scroll), instead of an empty reserved gutter. Set on html, it also can't
@@ -146,6 +211,21 @@
      position shifting when they close. They still block scrolling meanwhile */
   html {
     overflow-y: scroll;
+    /* Keyboard focus and in-page scrolling stop below the sticky header */
+    scroll-padding-top: calc(var(--header-height) + 0.5rem);
+  }
+  /* Tailwind's preflight gives buttons the arrow; everything clickable gets
+     the hand (disabled ones keep the arrow) */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([data-disabled]),
+  [role="menuitemradio"]:not([data-disabled]),
+  [role="menuitemcheckbox"]:not([data-disabled]),
+  [role="option"]:not([data-disabled]),
+  [role="switch"]:not(:disabled),
+  [role="combobox"]:not(:disabled),
+  label:has(input:not(:disabled)) {
+    cursor: pointer;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -155,22 +235,25 @@
   }
 }
 
-/* Chrome gives extension pages a body font of its own (the system's), outside
-   any layer, so it would beat the one above: body needs it, unlayered */
+/* Chrome gives extension pages a body font of its own (the system's, at
+   75%: 12px), outside any layer, so it would beat the one above: body needs
+   both, unlayered. 14px (text-sm), the panel's text size: text without a size
+   of its own (titles in lists, descriptions) was coming out at 12px */
 body {
   font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
 }
 
-/* The toolbar popup has no size of its own: the panel's usual width, and
-   Chrome's tallest popup (600px), which scrolls inside like the panel */
+/* Scrolls inside, like the panel */
 html[data-mode="popup"] body {
-  width: 25rem;
-  height: 600px;
+  width: var(--popup-width);
+  height: var(--popup-height);
 }
 
 ::selection {
-  background-color: #2563eb;
-  color: #ffffff;
+  background-color: var(--highlight);
+  color: var(--highlight-foreground);
 }
 
 /* The header's bottom line fades in once content scrolls under it */
@@ -202,12 +285,12 @@ html[data-mode="popup"] body {
   @apply mt-3;
 }
 
-.markdown h2 {
+.markdown [data-md="h2"] {
   @apply mt-6 text-base font-medium tracking-tight text-foreground;
 }
 
-.markdown h3,
-.markdown h4 {
+.markdown [data-md="h3"],
+.markdown [data-md="h4"] {
   @apply mt-5 font-medium tracking-tight text-foreground;
 }
 
@@ -237,7 +320,7 @@ html[data-mode="popup"] body {
 }
 
 .markdown code {
-  @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.8125rem];
+  @apply rounded-sm bg-muted px-1 py-0.5 font-mono text-code;
 }
 
 .markdown pre {
@@ -282,4 +365,22 @@ html body[data-scroll-locked] {
   margin-right: 0 !important;
   /* biome-ignore lint/complexity/noImportantStyles: same for its padding */
   padding-right: 0 !important;
+}
+
+/* The OS asked for less motion: motion/react follows it already (MotionConfig);
+   this covers CSS transitions and animations (tw-animate-css, pulses,
+   chevrons). Spinners keep turning: they say something is happening */
+@media (prefers-reduced-motion: reduce) {
+  *:not([data-slot="spinner"]),
+  *:not([data-slot="spinner"])::before,
+  *:not([data-slot="spinner"])::after {
+    /* biome-ignore lint/complexity/noImportantStyles: must beat every utility's own duration */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same, for the pulses */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same, for transitions */
+    transition-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same, for smooth scrolling */
+    scroll-behavior: auto !important;
+  }
 }

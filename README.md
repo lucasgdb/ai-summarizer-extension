@@ -57,6 +57,10 @@ To load a build by hand: `chrome://extensions` → Developer mode → Load unpac
 - Summaries are Markdown (`content`), rendered with `@tanstack/markdown/react`: raw HTML off, images reduced to their alt text, executable link protocols stripped, links open in a new tab.
 - UI strings live in typed dictionaries in `src/lib/i18n.ts` (English by default, Portuguese via the EN/PT switch). The choice is kept in `chrome.storage.local`, so the panel and the page picker share it and update live. `public/_locales` only holds the manifest/store texts.
 
+## Design tokens
+
+`src/styles/globals.css` holds the design system in three layers: **primitives** (`--neutral-*`, `--blue-600`, `--emerald-*`, `--duration-*`: raw values), **semantic** tokens (shadcn's names plus `--success`, `--highlight`, `--overlay`, `--media`/`--on-media`, `--duration-fast`/`normal`, `--ease-standard`: what a value is for, set per theme) and **component** tokens (`--popup-*`, `--player-*`, `--header-height`). Components use only semantic tokens, through Tailwind (`text-success`, `bg-overlay`, `p-card`, `text-code`, the `narrow-panel:`/`panel:`/`wide-panel:` breakpoints). `src/lib/motion.ts` mirrors the motion tokens for motion/react, and `src/lib/bridge/palette.ts` the colors for the page scripts, which draw on other sites where the CSS variables don't exist. The Google logo keeps its brand colors.
+
 ## UI components
 
 shadcn/ui lives in `src/components/ui` (generated, lint disabled there). Add more with:

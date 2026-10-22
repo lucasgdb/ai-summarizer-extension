@@ -6,7 +6,7 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import { BlockedReason } from "@/components/blocked-reason";
 import { Notice } from "@/components/notice";
 import { TextSkeleton } from "@/components/text-skeleton";
@@ -34,6 +34,7 @@ import { insufficientMessage } from "@/lib/credits-messages";
 import { type GenerationForm, generationSchema } from "@/lib/generation-schema";
 import { formatCredits, getDictionary, languageLabel } from "@/lib/i18n";
 import type { PickedContent } from "@/lib/messages";
+import { collapse } from "@/lib/motion";
 import { resolveGeneration } from "@/lib/preferences";
 import { useBalance, useOptions, useQuote } from "@/lib/queries";
 import {
@@ -123,6 +124,11 @@ function PricedForm({
 
   const values = useStore(form.store, (state) => state.values);
   const valid = useStore(form.store, (state) => state.isValid);
+  // An invalid option disables the button: the options open, so the error
+  // under its field is in sight instead of tucked away
+  useEffect(() => {
+    if (!valid) setOpen(true);
+  }, [valid]);
   // Typing preferences re-quotes once the user pauses, not on every key
   const instructions = useDebouncedValue(values.instructions, 500);
   const generation = resolveGeneration(
@@ -193,7 +199,7 @@ function PricedForm({
             </span>
             <ChevronDownIcon
               className={cn(
-                "ml-auto size-4 shrink-0 text-muted-foreground transition-transform",
+                "ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-(--duration-normal)",
                 open && "rotate-180",
               )}
             />
@@ -205,10 +211,7 @@ function PricedForm({
             {open && options && (
               <m.div
                 key="options"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                {...collapse}
                 // Clips the fields while it grows (the selects' lists are
                 // portaled, so they're never cut)
                 className="overflow-hidden"
@@ -319,11 +322,16 @@ function PricedForm({
                               field.handleChange(event.target.value)
                             }
                             aria-invalid={invalid}
+                            aria-describedby={`${invalid ? `${id}-instructions-error ` : ""}${id}-instructions-count`}
                             className="resize-none"
                           />
                           <div className="flex items-start justify-between gap-3">
-                            <FieldError errors={field.state.meta.errors} />
+                            <FieldError
+                              id={`${id}-instructions-error`}
+                              errors={field.state.meta.errors}
+                            />
                             <span
+                              id={`${id}-instructions-count`}
                               className={cn(
                                 "ml-auto text-xs text-muted-foreground tabular-nums",
                                 invalid && "text-destructive",
@@ -391,10 +399,14 @@ function PricedForm({
       )}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <BlockedReason reason={generating ? dict.audio.busy : null}>
+          <BlockedReason
+            reason={
+              generating ? dict.audio.busy : valid ? null : dict.options.invalid
+            }
+          >
             <Button type="submit" disabled={!ready || generating}>
               {quote.isFetching && (price === undefined || stale) ? (
-                <Spinner aria-label={dict.loading} />
+                <Spinner label={dict.loading} />
               ) : (
                 <SparklesIcon data-icon="inline-start" />
               )}

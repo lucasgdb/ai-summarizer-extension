@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export function TextSkeleton({ className }: { className?: string }) {
   return (
     <span
+      data-slot="skeleton"
       aria-hidden="true"
       className={cn(
         "inline-block h-[0.85em] animate-pulse rounded-sm bg-skeleton align-[-0.1em]",

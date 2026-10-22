@@ -69,6 +69,7 @@ export function CreditsPage({
   const transactions = useTransactions(session);
   return (
     <div className="flex flex-1 flex-col">
+      <h1 className="sr-only">{dict.nav.credits}</h1>
       <BalanceSection balance={balance.data} onBuy={onBuy} />
 
       <h2 className="mb-1 font-medium tracking-tight">
@@ -77,9 +78,9 @@ export function CreditsPage({
       <InfiniteList
         query={transactions}
         getKey={(transaction) => transaction.id}
-        // py-2.5 + kind (24) + date (2 + 16), plus a summary title (20) if any
+        // py-2.5 + kind (20) + date (2 + 16), plus a summary title (20) if any
         estimateSize={(transaction) =>
-          transaction.summary_title || transaction.summary_id ? 82 : 62
+          transaction.summary_title || transaction.summary_id ? 78 : 58
         }
         errorTitle={dict.credits.loadError}
         skeleton={<TransactionRowsSkeleton />}

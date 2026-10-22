@@ -8,16 +8,25 @@ export function Notice({
   children,
   actions,
   variant,
+  role,
 }: {
   icon: LucideIcon;
   title: string;
   children?: ReactNode;
   actions?: ReactNode;
   variant?: "default" | "destructive";
+  /**
+   * How a screen reader hears it appear: an error interrupts (alert), the
+   * rest waits its turn (status)
+   */
+  role?: "alert" | "status";
 }) {
   return (
-    <div className="space-y-4" aria-live="polite">
-      <Alert variant={variant}>
+    <div className="space-y-4">
+      <Alert
+        variant={variant}
+        role={role ?? (variant === "destructive" ? "alert" : "status")}
+      >
         <Icon />
         <AlertTitle>{title}</AlertTitle>
         {children && <AlertDescription>{children}</AlertDescription>}

@@ -194,6 +194,7 @@ const en = {
   export: "Export",
   exportSource: "Source",
   copied: "Copied",
+  copyFailed: "Couldn't copy",
 
   errors: {
     noAccess: {
@@ -492,6 +493,7 @@ const en = {
     effort: "Effort",
     instructions: "Preferences",
     instructionsPlaceholder: "e.g. focus on the numbers",
+    invalid: "Fix the options to summarize.",
     styles: {
       summary: { label: "Summary", hint: "intro + key points" },
       bullets: { label: "Bullet points", hint: "" },
@@ -588,6 +590,7 @@ const en = {
     noResultsTitle: "No summaries found",
     noResultsBody: "Try other words or fewer filters.",
     clearFilters: "Clear filters",
+    clearSearch: "Clear search",
     delete: "Delete",
     deleteTitle: "Delete this summary?",
     deleteBody: "It will be removed from your history. This can't be undone.",
@@ -693,6 +696,7 @@ const ptBr: Dictionary = {
   export: "Exportar",
   exportSource: "Fonte",
   copied: "Copiado",
+  copyFailed: "Não foi possível copiar",
 
   errors: {
     noAccess: {
@@ -980,6 +984,7 @@ const ptBr: Dictionary = {
     effort: "Esforço",
     instructions: "Preferências",
     instructionsPlaceholder: "ex.: foque nos números",
+    invalid: "Corrija as opções para resumir.",
     styles: {
       summary: { label: "Resumo", hint: "introdução + pontos-chave" },
       bullets: { label: "Tópicos", hint: "" },
@@ -1067,6 +1072,7 @@ const ptBr: Dictionary = {
     noResultsTitle: "Nenhum resumo encontrado",
     noResultsBody: "Tente outras palavras ou menos filtros.",
     clearFilters: "Limpar filtros",
+    clearSearch: "Limpar busca",
     delete: "Excluir",
     deleteTitle: "Excluir este resumo?",
     deleteBody: "Ele será removido do seu histórico. Não é possível desfazer.",

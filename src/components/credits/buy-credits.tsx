@@ -180,7 +180,7 @@ function PackCard({
   return (
     <li
       className={cn(
-        "flex items-center gap-3 rounded-lg border p-3.5",
+        "flex items-center gap-3 rounded-lg border p-card",
         recommended && "border-primary/60 ring-1 ring-primary/60",
       )}
     >
@@ -189,16 +189,14 @@ function PackCard({
         <p className="flex items-center gap-2 font-medium tracking-tight tabular-nums">
           {formatCredits(locale, pack.total_credits)}
           {recommended && (
-            <Badge className="h-4 px-1.5 text-[0.625rem]">
-              {dict.buy.recommended}
-            </Badge>
+            <Badge className="px-1.5">{dict.buy.recommended}</Badge>
           )}
         </p>
         <p className="mt-0.5 text-sm tabular-nums">
           {pack.bonus_credits > 0 ? (
             <>
               {formatNumber(locale, pack.credits)}
-              <span className="ml-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="ml-1.5 text-xs font-medium text-success">
                 {dict.buy.bonus(
                   formatNumber(locale, pack.bonus_credits),
                   formatPercent(locale, pack.bonus_credits / pack.credits),
@@ -315,12 +313,12 @@ function PurchaseView({
         className="flex flex-col items-center py-6 text-center"
         role="status"
       >
-        <CircleCheckIcon className="mb-3 size-8 text-emerald-600 dark:text-emerald-400" />
+        <CircleCheckIcon className="mb-3 size-8 text-success" />
         <p className="font-medium tracking-tight">{dict.buy.paidTitle}</p>
         <p className="mt-2 text-3xl font-semibold tracking-tighter tabular-nums">
           {dict.buy.paidCredits(formatCredits(locale, purchase.total_credits))}
         </p>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground tabular-nums">
           {dict.buy.newBalance(formatCredits(locale, purchase.credit_balance))}
         </p>
         <Button className="mt-6" onClick={onDone}>
@@ -405,13 +403,12 @@ function PurchaseView({
           className="size-52"
         />
       </div>
-      <p
-        className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
-        aria-live="polite"
-      >
+      {/* Not live: the countdown would be read every second. What changes
+          (paid, expired) is announced by the screen that replaces this */}
+      <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
         <Spinner />
         {dict.buy.waiting}
-        <span className="tabular-nums">
+        <span className="tabular-nums" role="timer">
           {dict.buy.expiresIn(
             formatRemaining(Date.parse(purchase.expires_at) - now),
           )}

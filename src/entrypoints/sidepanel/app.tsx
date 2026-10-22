@@ -13,8 +13,10 @@ import { Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { browser } from "#imports";
 import { AccountMenu } from "@/components/account-menu";
 import { BackButton } from "@/components/back-button";
+import { SkeletonPreview } from "@/components/dev/skeleton-preview";
 import { FillSection } from "@/components/fill/fill-section";
 import { emptyFilter, type FilterState } from "@/components/history/filters";
+import { KeepFocus } from "@/components/keep-focus";
 import { LanguageSwitch } from "@/components/language-switch";
 import {
   BuyCredits,
@@ -221,7 +223,7 @@ export function App() {
                   "preencher formulários" the longest, these two and the
                   pill): narrower, they'd crowd the row, and the account menu
                   has them anyway, at any width */}
-              <div className="hidden items-center gap-1 min-[34rem]:flex">
+              <div className="hidden items-center gap-1 wide-panel:flex">
                 <LanguageSwitch />
                 <ThemeToggle />
               </div>
@@ -241,68 +243,85 @@ export function App() {
       </header>
 
       <main className="flex flex-1 flex-col px-4 pt-6 pb-10">
-        {session ? (
-          <BuyCreditsContext value={openBuy}>
-            {/* Hidden, not unmounted: a pick or summary in progress survives
+        <KeepFocus className="flex flex-1 flex-col">
+          {session ? (
+            <BuyCreditsContext value={openBuy}>
+              {/* Hidden, not unmounted: a pick or summary in progress survives
                 a look at the history */}
-            <div
-              className={
-                section === "summarize" ? "flex flex-1 flex-col" : "hidden"
-              }
-            >
-              {/* Keyed by user: signing in as someone else starts from scratch */}
-              <Summarizer
-                key={session.user.id}
-                session={session}
-                handedPick={
-                  handedPick?.intent === "pick-content" ? handedPick.n : 0
+              <div
+                className={
+                  section === "summarize" ? "flex flex-1 flex-col" : "hidden"
                 }
-              />
-            </div>
-            {/* Same: a form picked and half answered survives a look elsewhere */}
-            <div
-              className={section === "fill" ? "flex flex-1 flex-col" : "hidden"}
-            >
-              <FillSection
-                key={session.user.id}
-                session={session}
-                handedPick={
-                  handedPick?.intent === "pick-form" ? handedPick.n : 0
-                }
-              />
-            </div>
-            {section === "credits" && (
-              <Suspense fallback={<CreditsFallback />}>
-                <CreditsPage session={session} onBuy={openBuy} />
-              </Suspense>
-            )}
-            {section === "buy" && (
-              <Suspense fallback={<BuyCreditsFallback onBack={closeBuy} />}>
-                <BuyCredits
+              >
+                {/* Keyed by user: signing in as someone else starts from scratch */}
+                <Summarizer
                   key={session.user.id}
                   session={session}
-                  onBack={closeBuy}
+                  handedPick={
+                    handedPick?.intent === "pick-content" ? handedPick.n : 0
+                  }
                 />
-              </Suspense>
-            )}
-            {section === "history" && (
-              <div className="flex flex-1 flex-col">
-                <Suspense fallback={<HistoryFallback />}>
-                  <History
-                    key={session.user.id}
-                    session={session}
-                    open={openSummary}
-                    onOpenChange={setOpenSummary}
-                    filter={historyFilter}
-                    onFilterChange={setHistoryFilter}
-                  />
-                </Suspense>
               </div>
-            )}
-          </BuyCreditsContext>
-        ) : (
-          <SignIn />
-        )}
+              {/* Same: a form picked and half answered survives a look elsewhere */}
+              <div
+                className={
+                  section === "fill" ? "flex flex-1 flex-col" : "hidden"
+                }
+              >
+                <FillSection
+                  key={session.user.id}
+                  session={session}
+                  handedPick={
+                    handedPick?.intent === "pick-form" ? handedPick.n : 0
+                  }
+                />
+              </div>
+              {/* In development, a switch shows each one's skeleton too */}
+              {section === "credits" && (
+                <SkeletonPreview
+                  skeleton={<CreditsFallback />}
+                  real={
+                    <Suspense fallback={<CreditsFallback />}>
+                      <CreditsPage session={session} onBuy={openBuy} />
+                    </Suspense>
+                  }
+                />
+              )}
+              {section === "buy" && (
+                <SkeletonPreview
+                  skeleton={<BuyCreditsFallback onBack={closeBuy} />}
+                  real={
+                    <Suspense
+                      fallback={<BuyCreditsFallback onBack={closeBuy} />}
+                    >
+                      <BuyCredits
+                        key={session.user.id}
+                        session={session}
+                        onBack={closeBuy}
+                      />
+                    </Suspense>
+                  }
+                />
+              )}
+              {section === "history" && (
+                <div className="flex flex-1 flex-col">
+                  <Suspense fallback={<HistoryFallback />}>
+                    <History
+                      key={session.user.id}
+                      session={session}
+                      open={openSummary}
+                      onOpenChange={setOpenSummary}
+                      filter={historyFilter}
+                      onFilterChange={setHistoryFilter}
+                    />
+                  </Suspense>
+                </div>
+              )}
+            </BuyCreditsContext>
+          ) : (
+            <SignIn />
+          )}
+        </KeepFocus>
       </main>
 
       <footer className="flex items-center justify-between px-4 pb-6 text-sm text-muted-foreground">
@@ -330,8 +349,8 @@ function NavLabel({ full, short }: { full: string; short?: string }) {
   if (!short || short === full) return full;
   return (
     <>
-      <span className="min-[27rem]:hidden">{short}</span>
-      <span className="hidden min-[27rem]:inline">{full}</span>
+      <span className="panel:hidden">{short}</span>
+      <span className="hidden panel:inline">{full}</span>
     </>
   );
 }
@@ -357,7 +376,7 @@ function MainNav({
           aria-current={current === item ? "page" : undefined}
           onClick={() => onNavigate(item)}
           className={cn(
-            "cursor-pointer whitespace-nowrap rounded-md px-1.5 py-1 tracking-tight transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
+            "cursor-pointer whitespace-nowrap rounded-md px-1.5 py-1 text-xs tracking-tight transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
             current === item ? "text-foreground" : "text-muted-foreground",
           )}
         >
@@ -756,9 +775,10 @@ function Content({
           {/* Disabled until the tab is known: it may turn out to be a PDF,
               which gets its own action instead of these two */}
           <div className="flex flex-col gap-2">
+            {/* While the page is read, neither starts another job */}
             <Button
               size="lg"
-              disabled={page === undefined}
+              disabled={page === undefined || state.status === "reading"}
               onClick={() => onCapture("element")}
             >
               <SquareDashedMousePointerIcon data-icon="inline-start" />
@@ -768,9 +788,14 @@ function Content({
               variant="outline"
               size="lg"
               disabled={page === undefined || state.status === "reading"}
+              aria-busy={state.status === "reading"}
               onClick={() => onCapture("page")}
             >
-              <FileTextIcon data-icon="inline-start" />
+              {state.status === "reading" ? (
+                <Spinner data-icon="inline-start" label={dict.loading} />
+              ) : (
+                <FileTextIcon data-icon="inline-start" />
+              )}
               {dict.wholePage}
             </Button>
           </div>
@@ -965,13 +990,19 @@ function ReadingPdf({
         {dict.pdf.reading}
       </p>
       <div className="space-y-1.5">
-        <div className="h-1 overflow-hidden rounded-full bg-muted">
+        <div
+          role="progressbar"
+          aria-label={dict.pdf.reading}
+          aria-valuemin={0}
+          aria-valuemax={progress?.total ?? 1}
+          aria-valuenow={progress?.page ?? 0}
+          className="h-1 overflow-hidden rounded-full bg-muted"
+        >
+          {/* Scaled, not resized: a transform doesn't lay the page out again */}
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-200"
+            className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-(--duration-normal)"
             style={{
-              width: progress
-                ? `${(progress.page / progress.total) * 100}%`
-                : "0%",
+              transform: `scaleX(${progress ? progress.page / progress.total : 0})`,
             }}
           />
         </div>

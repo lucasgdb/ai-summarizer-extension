@@ -1,4 +1,4 @@
-import { LanguagesIcon, XIcon } from "lucide-react";
+import { LanguagesIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { BlockedReason } from "@/components/blocked-reason";
 import { DeleteButton } from "@/components/delete-button";
@@ -459,12 +459,19 @@ function TranslationFailure({
                 }`;
 
   return (
-    <div role="alert" className="flex items-start gap-2">
+    <div className="flex items-start gap-2">
       <div className="flex-1">
-        <p className="text-sm text-muted-foreground">{message}</p>
+        {/* Only the message is announced, not the partial text below it */}
+        <p
+          role="alert"
+          className="flex items-start gap-1.5 text-sm text-muted-foreground"
+        >
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+          {message}
+        </p>
         {/* Charged but not saved: the text that arrived is all there is */}
         {failure.partial && (
-          <div className="mt-3 rounded-lg border p-3">
+          <div className="mt-3 rounded-lg border p-card">
             <SummaryView summary={failure.partial} />
           </div>
         )}

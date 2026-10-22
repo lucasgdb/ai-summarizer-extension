@@ -39,6 +39,7 @@ import {
   languageLabel,
 } from "@/lib/i18n";
 import type { ScannedForm } from "@/lib/messages";
+import { collapse } from "@/lib/motion";
 import { useBalance, useFillQuote, useFormOptions } from "@/lib/queries";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { useLocale } from "@/lib/use-locale";
@@ -222,7 +223,7 @@ export function FillForm({
           rows={5}
           required
           aria-invalid={contextMissing || undefined}
-          aria-describedby={contextMissing ? `${id}-context-error` : undefined}
+          aria-describedby={`${contextMissing ? `${id}-context-error ` : ""}${id}-context-hint`}
           placeholder={dict.fill.contextPlaceholder}
           onChange={(event) => {
             setContext(event.target.value);
@@ -234,7 +235,10 @@ export function FillForm({
             {dict.fill.contextRequired}
           </FieldError>
         )}
-        <FieldDescription className="flex justify-between gap-3">
+        <FieldDescription
+          id={`${id}-context-hint`}
+          className="flex justify-between gap-3"
+        >
           <span>{dict.fill.contextHint}</span>
           <span className="shrink-0 tabular-nums">
             {formatNumber(locale, context.length)}/
@@ -264,21 +268,14 @@ export function FillForm({
           </span>
           <ChevronDownIcon
             className={cn(
-              "ml-auto size-4 shrink-0 text-muted-foreground transition-transform",
+              "ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-(--duration-normal)",
               open && "rotate-180",
             )}
           />
         </button>
         <AnimatePresence initial={false}>
           {open && (
-            <m.div
-              key="options"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-              className="overflow-hidden"
-            >
+            <m.div key="options" {...collapse} className="overflow-hidden">
               <div id={`${id}-options`} className="space-y-4 border-t p-4">
                 <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                   <ChoiceSelect
@@ -401,7 +398,7 @@ export function FillForm({
           disabled={toSend.length === 0 || (hasContext && !canFill)}
         >
           {quote.isFetching && ready ? (
-            <Spinner data-icon="inline-start" aria-label={dict.loading} />
+            <Spinner data-icon="inline-start" label={dict.loading} />
           ) : (
             <WandSparklesIcon data-icon="inline-start" />
           )}

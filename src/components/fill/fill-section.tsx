@@ -17,6 +17,7 @@ import { BackButton } from "@/components/back-button";
 import { useElapsedSeconds } from "@/components/elapsed-seconds";
 import { Notice } from "@/components/notice";
 import { PickingHint } from "@/components/picking-hint";
+import { Truncated } from "@/components/truncated";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -32,6 +33,7 @@ import type {
   PickerCommand,
   ScannedForm,
 } from "@/lib/messages";
+import { collapse } from "@/lib/motion";
 import {
   currentTabId,
   type FillSession,
@@ -473,7 +475,7 @@ export function FillSection({
               onClick={() => capture("page")}
             >
               {state.status === "scanning" ? (
-                <Spinner data-icon="inline-start" aria-label={dict.loading} />
+                <Spinner data-icon="inline-start" label={dict.loading} />
               ) : (
                 <FileTextIcon data-icon="inline-start" />
               )}
@@ -665,7 +667,7 @@ function FormSummary({ form }: { form: ScannedForm }) {
         {host && <Badge variant="secondary">{host}</Badge>}
         {form.label && (
           <Badge variant="outline" className="max-w-full font-mono">
-            <span className="truncate">{form.label}</span>
+            <Truncated className="truncate" text={form.label} />
           </Badge>
         )}
         <Badge variant="outline" className="tabular-nums">
@@ -720,21 +722,14 @@ function FormSummary({ form }: { form: ScannedForm }) {
           </span>
           <ChevronDownIcon
             className={cn(
-              "ml-auto size-4 shrink-0 text-muted-foreground transition-transform",
+              "ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-(--duration-normal)",
               open && "rotate-180",
             )}
           />
         </button>
         <AnimatePresence initial={false}>
           {open && (
-            <m.div
-              key="fields"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-              className="overflow-hidden"
-            >
+            <m.div key="fields" {...collapse} className="overflow-hidden">
               <ol
                 id={`${id}-fields`}
                 className="list-decimal space-y-1 border-t py-3 pr-4 pl-9 text-sm text-muted-foreground"
@@ -789,14 +784,21 @@ function FillStatus({
       className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums"
     >
       <Spinner />
-      {phase === "thinking"
-        ? seconds > 0
-          ? dict.thinkingFor(seconds)
-          : dict.thinking
-        : `${dict.fill.filling} ${dict.fill.progress(
-            formatNumber(locale, done),
-            formatNumber(locale, total),
-          )}`}
+      {/* The seconds aren't read out: the counter would be announced every
+          second. Screen readers hear the phase, and the progress */}
+      {phase === "thinking" ? (
+        <>
+          <span className="sr-only">{dict.thinking}</span>
+          <span aria-hidden="true">
+            {seconds > 0 ? dict.thinkingFor(seconds) : dict.thinking}
+          </span>
+        </>
+      ) : (
+        `${dict.fill.filling} ${dict.fill.progress(
+          formatNumber(locale, done),
+          formatNumber(locale, total),
+        )}`
+      )}
     </p>
   );
 }

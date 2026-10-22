@@ -3,6 +3,7 @@ import {
   CheckIcon,
   CopyIcon,
   DownloadIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Hint } from "@/components/hint";
@@ -46,12 +47,16 @@ export function ContentSkeleton() {
 
 function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
   const dict = useDictionary();
-  const [copied, setCopied] = useState(false);
+  const [result, setResult] = useState<"copied" | "failed" | null>(null);
 
   async function copy() {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    // Refused when the panel isn't focused, or the clipboard is blocked
+    const ok = await navigator.clipboard.writeText(text).then(
+      () => true,
+      () => false,
+    );
+    setResult(ok ? "copied" : "failed");
+    setTimeout(() => setResult(null), 1500);
   }
 
   return (
@@ -62,12 +67,26 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
       disabled={disabled}
       onClick={copy}
     >
-      {copied ? (
+      {result === "copied" ? (
         <CheckIcon data-icon="inline-start" />
+      ) : result === "failed" ? (
+        <TriangleAlertIcon data-icon="inline-start" />
       ) : (
         <CopyIcon data-icon="inline-start" />
       )}
-      {copied ? dict.copied : dict.copy}
+      {result === "copied"
+        ? dict.copied
+        : result === "failed"
+          ? dict.copyFailed
+          : dict.copy}
+      {/* Said out loud too: the label changing alone isn't announced */}
+      <span role="status" className="sr-only">
+        {result === "copied"
+          ? dict.copied
+          : result === "failed"
+            ? dict.copyFailed
+            : ""}
+      </span>
     </Button>
   );
 }
@@ -144,8 +163,9 @@ export function SummaryView({
           </h2>
         ) : streaming && summary.source_title ? (
           // The model writes its title after the text: until then, the page's
-          // own title, dimmed so it doesn't read as the final one
-          <h2 className="title line-clamp-2 text-lg leading-snug font-semibold tracking-tight text-muted-foreground/70">
+          // own title, muted so it doesn't read as the final one (not more:
+          // it's still text to read, 4.5:1)
+          <h2 className="title line-clamp-2 text-lg leading-snug font-semibold tracking-tight text-muted-foreground">
             {summary.source_title}
           </h2>
         ) : (

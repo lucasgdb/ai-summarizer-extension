@@ -1,5 +1,6 @@
 import { FileTextIcon, GlobeIcon } from "lucide-react";
 import { useState } from "react";
+import { Truncated } from "@/components/truncated";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   formatNumber,
@@ -38,10 +39,10 @@ function languageName(tag: string, uiLocale: string) {
  */
 function CardSkeleton() {
   return (
-    <div className="rounded-lg border p-3.5" aria-hidden="true">
+    <div className="rounded-lg border p-card" aria-hidden="true">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center">
-          <Skeleton className="size-4 rounded" />
+          <Skeleton className="size-4 rounded-sm" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex h-[1.375rem] items-center">
@@ -101,7 +102,7 @@ export function PageCard({ info }: { info: PageInfo | null | undefined }) {
   return (
     <section
       aria-label={dict.pageInfo.label}
-      className="rounded-lg border p-3.5"
+      className="rounded-lg border p-card"
     >
       {/* With the site under it, the icon sits by the title's first line;
           a title alone is centered on the icon instead */}
@@ -127,20 +128,26 @@ export function PageCard({ info }: { info: PageInfo | null | undefined }) {
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 font-medium leading-snug tracking-tight">
-            {title}
-          </p>
+          <Truncated
+            as="p"
+            className="line-clamp-2 font-medium leading-snug tracking-tight"
+            text={title}
+          />
           {host && (
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {host}
-            </p>
+            <Truncated
+              as="p"
+              className="mt-0.5 truncate text-xs text-muted-foreground"
+              text={host}
+            />
           )}
         </div>
       </div>
       {info.description && (
-        <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">
-          {info.description}
-        </p>
+        <Truncated
+          as="p"
+          className="mt-3 line-clamp-3 text-sm text-muted-foreground"
+          text={info.description}
+        />
       )}
       {facts.length > 0 && (
         <p className="mt-3 text-xs text-muted-foreground tabular-nums">

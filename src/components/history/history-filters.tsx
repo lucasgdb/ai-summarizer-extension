@@ -165,7 +165,7 @@ export function HistoryFilters({
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={dict.history.clearFilters}
+              aria-label={dict.history.clearSearch}
               className="absolute top-1/2 right-1.5 -translate-y-1/2 text-muted-foreground"
               onClick={() => update({ q: "" })}
             >

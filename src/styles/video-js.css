@@ -1,56 +1,57 @@
-/* Video.js in the panel's look: the theme's tokens, rounded corners, a thin
-   progress bar in the foreground color, no gray box on the big play button */
+/* Video.js in the panel's look: its component tokens (--player-*, in
+   globals.css), rounded corners, a thin progress bar, no gray box on the big
+   play button */
 
 .video-js.vjs-panel {
   font-family: var(--font-sans);
-  border-radius: var(--radius-md, 0.5rem);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #000;
+  background: var(--media);
 }
 
 .vjs-panel .vjs-control-bar {
-  height: 2.75rem;
-  background: linear-gradient(to top, rgb(0 0 0 / 0.65), transparent);
-  font-size: 0.8125rem;
+  height: var(--player-control-height);
+  background: linear-gradient(to top, var(--player-scrim), transparent);
+  font-size: var(--text-code);
 }
 
 .vjs-panel .vjs-big-play-button {
-  width: 3.25rem;
-  height: 3.25rem;
+  width: var(--player-play-size);
+  height: var(--player-play-size);
   margin: 0;
   translate: -50% -50%;
   top: 50%;
   left: 50%;
   border: 0;
   border-radius: 9999px;
-  background: rgb(255 255 255 / 0.92);
-  color: #0a0a0a;
-  line-height: 3.25rem;
+  background: var(--player-play-bg);
+  color: var(--player-play-fg);
+  line-height: var(--player-play-size);
   font-size: 2rem;
-  transition: transform 120ms ease-out;
+  transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 .vjs-panel:hover .vjs-big-play-button,
 .vjs-panel .vjs-big-play-button:focus {
-  background: #fff;
+  background: var(--on-media);
   transform: scale(1.05);
 }
 
 .vjs-panel .vjs-progress-control .vjs-progress-holder {
   height: 0.25rem;
   border-radius: 9999px;
-  background: rgb(255 255 255 / 0.25);
+  background: var(--player-track);
 }
 
 .vjs-panel .vjs-load-progress,
 .vjs-panel .vjs-load-progress div {
   border-radius: 9999px;
-  background: rgb(255 255 255 / 0.35);
+  background: var(--player-buffer);
 }
 
 .vjs-panel .vjs-play-progress {
   border-radius: 9999px;
-  background: #fff;
+  background: var(--player-progress);
 }
 
 /* A visible thumb at the head of the bar, like the panel's sliders */
@@ -70,7 +71,7 @@
 .vjs-panel .vjs-time-control {
   padding: 0 0.25rem;
   min-width: auto;
-  line-height: 2.75rem;
+  line-height: var(--player-control-height);
   font-variant-numeric: tabular-nums;
 }
 
@@ -98,13 +99,6 @@
 .vjs-panel .vjs-poster,
 .vjs-panel .vjs-tech {
   border-radius: inherit;
-}
-
-/* The play head's own time tooltip: near the start, Video.js keeps pulling
-   it back inside the bar on every update, so it jitters. The current time
-   is in the control bar already; the cursor's tooltip stays */
-.video-js.vjs-panel .vjs-progress-control .vjs-play-progress .vjs-time-tooltip {
-  display: none;
 }
 
 /* The play head's own time tooltip: the current time is in the control bar

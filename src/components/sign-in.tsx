@@ -43,7 +43,7 @@ export function SignIn() {
         onClick={signIn}
       >
         {pending ? (
-          <Spinner aria-label={dict.loading} />
+          <Spinner label={dict.loading} />
         ) : (
           <GoogleIcon className="size-4" />
         )}

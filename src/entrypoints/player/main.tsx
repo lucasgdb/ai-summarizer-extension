@@ -1,7 +1,7 @@
 // The summary's video in a fullscreen window. The side panel can't go
 // fullscreen itself, so its fullscreen button opens this page in a window in
 // fullscreen state, from the same second. Esc (or the X) closes it
-import { XIcon } from "lucide-react";
+import { RotateCcwIcon, XIcon } from "lucide-react";
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { browser } from "#imports";
@@ -11,7 +11,7 @@ import {
   VideoJsPlayer,
 } from "@/components/video-js-player";
 import { parseSession, sessionItem } from "@/lib/auth";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, getLocale, localeConfig } from "@/lib/i18n";
 import { getMediaUrl } from "@/lib/media";
 import { loadLocale, useLocale } from "@/lib/use-locale";
 import "@/styles/globals.css";
@@ -22,6 +22,7 @@ const startAt = Number(params.get("t") ?? 0) || 0;
 document.title = params.get("title") || "AI Summarizer";
 
 await loadLocale();
+document.documentElement.lang = localeConfig[await getLocale()].htmlLang;
 
 /** Where the video is, for the panel to pick up from */
 let player: VideoJsHandle | null = null;
@@ -73,11 +74,25 @@ function FullscreenPlayer() {
   }, []);
 
   return (
-    <main className="relative h-dvh w-screen bg-black">
+    <main className="relative h-dvh w-screen bg-media">
       {failed ? (
-        <p className="grid h-full place-items-center text-sm text-white/80">
-          {dict.video.loadFailed}
-        </p>
+        <div
+          role="alert"
+          className="flex h-full flex-col items-center justify-center gap-3 text-sm text-on-media/80"
+        >
+          <p>{dict.video.loadFailed}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setFailed(false);
+              void fetchUrl();
+            }}
+          >
+            <RotateCcwIcon data-icon="inline-start" />
+            {dict.tryAgain}
+          </Button>
+        </div>
       ) : (
         <VideoJsPlayer
           src={src}
@@ -96,7 +111,7 @@ function FullscreenPlayer() {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-3 right-3 z-10 rounded-full bg-black/40 text-white hover:bg-black/60 hover:text-white"
+        className="absolute top-3 right-3 z-10 rounded-full bg-media/40 text-on-media hover:bg-media/60 hover:text-on-media"
         aria-label={dict.video.close}
         onClick={() => close(player?.currentTime())}
       >

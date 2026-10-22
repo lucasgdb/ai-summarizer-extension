@@ -171,7 +171,7 @@ export function InfiniteList<T>({
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
-                <Spinner aria-label={dict.loading} />
+                <Spinner />
                 {dict.history.loadingMore}
               </div>
             )}
