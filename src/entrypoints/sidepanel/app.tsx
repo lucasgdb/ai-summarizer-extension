@@ -46,6 +46,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { apiUrl } from "@/lib/api";
 import { refreshUser, type Session } from "@/lib/auth";
 import { keyCommands } from "@/lib/bridge/picker";
+import { targetWindowId } from "@/lib/browser-support";
 import { BuyCreditsContext } from "@/lib/buy-credits";
 import { formatNumber, getDictionary, localeConfig } from "@/lib/i18n";
 import type { PickedContent, PickerCommand } from "@/lib/messages";
@@ -63,6 +64,7 @@ import {
   requestAccess,
 } from "@/lib/page";
 import type { PdfDocument } from "@/lib/pdf";
+import { cancelPicks, onCancelPicks } from "@/lib/picking";
 import { portfolioPage } from "@/lib/portfolio";
 import {
   queryClient,
@@ -188,6 +190,8 @@ export function App() {
   }, [mode]);
 
   function navigate(next: Section) {
+    // A pick in progress stays with the section it was started in
+    if (next !== section) cancelPicks();
     setSection(next);
     setOpenSummary(null);
     window.scrollTo(0, 0);
@@ -195,6 +199,7 @@ export function App() {
 
   // Keeps the open summary: back from buying returns to it
   function openBuy() {
+    cancelPicks();
     if (section !== "buy") setBuyFrom(section);
     setSection("buy");
     window.scrollTo(0, 0);
@@ -661,6 +666,11 @@ function Summarizer({
   // A selection belongs to one page: drop it when the user switches tabs or
   // navigates. Closing the panel tears down the picker on its own.
   const onPageChange = useEffectEvent(reset);
+  // Left for another section: the picker on the page goes too
+  const onLeave = useEffectEvent(() => {
+    if (state.status === "picking") reset();
+  });
+  useEffect(() => onCancelPicks(onLeave), []);
 
   // The start screen describes the tab; a PDF gets its own (one "Read PDF").
   // undefined while reading it, null without access
@@ -672,8 +682,9 @@ function Summarizer({
 
   useEffect(() => {
     let windowId: number | undefined;
-    browser.windows.getCurrent().then((window) => {
-      windowId = window.id;
+    // Its own window, or the one a detached panel window works on
+    void targetWindowId().then((id) => {
+      windowId = id;
     });
 
     function onActivated(info: { windowId: number }) {

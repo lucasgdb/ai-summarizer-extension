@@ -73,6 +73,13 @@ shadcn/ui lives in `src/components/ui` (generated, lint disabled there). Add mor
 pnpm shadcn add <component>
 ```
 
+## Browsers
+
+- **Chromium** (`pnpm build`, `.output/chrome-mv3`): one build for Chrome, Edge, Brave, Vivaldi, Opera and Arc. What they lack is detected at runtime (`src/lib/browser-support.ts`). With Chrome's side panel API (Chrome, Edge, Brave, Vivaldi) everything works as described above, panel ↔ popup switch included. Without it (Opera, Arc) the icon opens the popup, the switch is hidden, and **Select content** / **Select form** open the app in a narrow window of its own at the browser's right edge (it stays open while the page is clicked), working on that browser window's tabs (`sidepanel.html?window=<id>`).
+- **Firefox** (`pnpm build:firefox`, `.output/firefox-mv3`; `pnpm dev:firefox`, `pnpm zip:firefox`): Firefox's own sidebar (`sidebar_action`), opened and closed by the toolbar icon; no switch. Firefox 128+, a fixed id (`ai-summarizer@lucasbittencourt.dev`), the data it sends declared for addons.mozilla.org, and lb-auth-api as a host permission too (each install has a random `moz-extension://` origin that CORS can't list). Without Chrome's favicon cache the page card shows a globe.
+- **Google sign-in:** each build has its own redirect URI (`browser.identity.getRedirectURL()`), and each must be in the OAuth client's redirect URIs: `https://<id>.chromiumapp.org/` per Chromium store id (the unpacked builds share the pinned one), and for Firefox `https://29f0cda6cefe0b18754c91cf9633adedb2fa71d9.extensions.allizom.org/`.
+- **Safari** isn't built: it needs Xcode on macOS (`xcrun safari-web-extension-converter`) and an App Store app around the extension.
+
 ## Publishing
 
 `pnpm zip` builds in mode `store` and writes `.output/ai-summarizer-<version>-chrome-store.zip`:

@@ -1,5 +1,6 @@
 import { browser, defineBackground } from "#imports";
 import { AuthError, googleSignInFlow, signInStateItem } from "@/lib/auth";
+import { sidebarAction } from "@/lib/browser-support";
 import { localeItem } from "@/lib/i18n";
 import type { BackgroundRequest } from "@/lib/messages";
 import { applyUiMode, type UiMode, uiModeItem } from "@/lib/ui-mode";
@@ -78,6 +79,15 @@ function fromExtensionPage(sender: {
 }
 
 export default defineBackground(() => {
+  // Firefox: the toolbar icon opens (and closes) the sidebar. Its click
+  // counts as the user's gesture that sidebarAction needs
+  const sidebar = sidebarAction;
+  if (sidebar) {
+    browser.action.onClicked.addListener(() => {
+      void sidebar.toggle();
+    });
+  }
+
   browser.runtime.onMessage.addListener(
     (message: BackgroundRequest, sender, sendResponse) => {
       if (!fromExtensionPage(sender)) return;

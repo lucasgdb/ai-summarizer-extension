@@ -1,5 +1,6 @@
 import { browser } from "#imports";
 import { maxChars, normalize } from "./bridge/extract";
+import { targetWindowId } from "./browser-support";
 import {
   type BridgeRequest,
   type BridgeResponse,
@@ -42,7 +43,14 @@ export class PageError extends Error {
 }
 
 async function activeTab() {
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  // The window this page works on: its own, or the one a detached panel
+  // window was opened for (no side panel)
+  const windowId = await targetWindowId();
+  const [tab] = await browser.tabs.query(
+    windowId === undefined
+      ? { active: true, currentWindow: true }
+      : { active: true, windowId },
+  );
   if (tab?.id === undefined) {
     throw new PageError("restricted");
   }

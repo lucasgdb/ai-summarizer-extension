@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { Session } from "@/lib/auth";
 import { keyCommands } from "@/lib/bridge/picker";
+import { targetWindowId } from "@/lib/browser-support";
 import { type FillChoices, FillError, streamFill } from "@/lib/forms";
 import { formatCredits, formatNumber, getDictionary } from "@/lib/i18n";
 import type {
@@ -45,6 +46,7 @@ import {
   scanPageForm,
   undoPageFill,
 } from "@/lib/page";
+import { onCancelPicks } from "@/lib/picking";
 import { queryClient, refreshAfterFailure, setBalance } from "@/lib/queries";
 import { continueInPanel } from "@/lib/ui-mode";
 import { useUiMode } from "@/lib/ui-mode-context";
@@ -418,10 +420,16 @@ export function FillSection({
   const onPageChange = useEffectEvent(() => {
     if (state.status !== "filling") reset();
   });
+  // Left for another section: the picker on the page goes too
+  const onLeave = useEffectEvent(() => {
+    if (state.status === "picking") reset();
+  });
+  useEffect(() => onCancelPicks(onLeave), []);
   useEffect(() => {
     let windowId: number | undefined;
-    browser.windows.getCurrent().then((window) => {
-      windowId = window.id;
+    // Its own window, or the one a detached panel window works on
+    void targetWindowId().then((id) => {
+      windowId = id;
     });
     function onActivated(info: { windowId: number }) {
       if (info.windowId === windowId) onPageChange();

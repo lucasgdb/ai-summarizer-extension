@@ -4,7 +4,9 @@ import type { BackgroundRequest } from "./messages";
 import type { UiMode } from "./ui-mode";
 
 // Web application OAuth client whose redirect URIs include
-// browser.identity.getRedirectURL() (https://<extension-id>.chromiumapp.org/)
+// browser.identity.getRedirectURL() of every build: Chromium browsers
+// https://<extension-id>.chromiumapp.org/ (one per store id), Firefox
+// https://<hash of ai-summarizer@lucasbittencourt.dev>.extensions.allizom.org/
 const googleClientId = import.meta.env.WXT_GOOGLE_CLIENT_ID ?? "";
 
 /** This extension's app in lb-auth-api (auth.apps) */

@@ -172,6 +172,9 @@ export default defineUnlistedScript(() => {
     },
   );
 
+  /** The picker on the page, if any: stops it and tells its panel */
+  let cancelActivePicker: (() => void) | undefined;
+
   browser.runtime.onConnect.addListener((port) => {
     // The panel closed mid-fill: nothing more is applied, and a field caught
     // mid-typing goes back as it was
@@ -188,6 +191,10 @@ export default defineUnlistedScript(() => {
       return;
     }
     const forForm = port.name === formPickerPortName;
+
+    // One picker at a time: a new one (another section of the panel, another
+    // panel) cancels the one already on the page
+    cancelActivePicker?.();
 
     const post = (message: PickerPortMessage) => port.postMessage(message);
     const picker = startPicker({
@@ -209,7 +216,20 @@ export default defineUnlistedScript(() => {
     port.onMessage.addListener((message: PickerPanelMessage) => {
       if (message.type === "command") picker.run(message.command);
     });
+    const cancel = () => {
+      picker.stop();
+      try {
+        post({ type: "cancelled" });
+        port.disconnect();
+      } catch {
+        // Already gone
+      }
+    };
+    cancelActivePicker = cancel;
     // Panel closed, tab switched or picking cancelled from the panel
-    port.onDisconnect.addListener(picker.stop);
+    port.onDisconnect.addListener(() => {
+      picker.stop();
+      if (cancelActivePicker === cancel) cancelActivePicker = undefined;
+    });
   });
 });

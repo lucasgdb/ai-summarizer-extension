@@ -2,6 +2,7 @@ import { AppWindowIcon, PanelRightIcon } from "lucide-react";
 import { browser } from "#imports";
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
+import { canSwitchMode } from "@/lib/browser-support";
 import type { BackgroundRequest } from "@/lib/messages";
 import { applyUiMode, currentWindowId, uiModeItem } from "@/lib/ui-mode";
 import { useUiMode } from "@/lib/ui-mode-context";
@@ -12,6 +13,12 @@ import { useDictionary } from "@/lib/use-locale";
  * choice (the icon opens it from then on) and opens it right away
  */
 export function ModeSwitch() {
+  // Firefox (sidebar), Opera and Arc (popup) have one way to open
+  if (!canSwitchMode) return null;
+  return <Switch />;
+}
+
+function Switch() {
   const dict = useDictionary();
   const mode = useUiMode();
   const next = mode === "sidepanel" ? "popup" : "sidepanel";

@@ -8,17 +8,26 @@ import { browser } from "#imports";
 import { getLocale, type Locale } from "./i18n";
 import { portfolioPage } from "./portfolio";
 
-/** "edge" or "chrome": Edge says so in its brands (or its user agent) */
+/**
+ * The browser, for the survey: Firefox and Opera say so in their user agent,
+ * Edge in its brands (or its user agent), Brave in navigator.brave. The
+ * survey keeps the values its API knows (today chrome and edge) and drops
+ * the rest
+ */
 function browserName() {
+  const agent = navigator.userAgent;
+  if (/\bFirefox\//.test(agent)) return "firefox";
   const data = (
     navigator as Navigator & {
       userAgentData?: { brands?: { brand: string }[] };
     }
   ).userAgentData;
-  const edge =
-    data?.brands?.some((b) => b.brand === "Microsoft Edge") ??
-    /\bEdg\//.test(navigator.userAgent);
-  return edge ? "edge" : "chrome";
+  const brand = (name: string) =>
+    data?.brands?.some((b) => b.brand === name) ?? false;
+  if (brand("Opera") || /\bOPR\//.test(agent)) return "opera";
+  if (brand("Microsoft Edge") || /\bEdg\//.test(agent)) return "edge";
+  if ("brave" in navigator) return "brave";
+  return "chrome";
 }
 
 export function uninstallUrl(locale: Locale) {
